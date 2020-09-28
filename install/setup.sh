@@ -3,7 +3,6 @@
 
 #initiate conjur install
 
-
 install_conjur(){
 #Load ini variables
 source <(grep = config.ini)
