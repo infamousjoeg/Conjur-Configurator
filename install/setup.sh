@@ -1,11 +1,13 @@
 #Conjur POC Install - Master install and base policies 
 #Please verify the commands ran before running this script in your environment
 
+master_name=fqdn
+company_name=Company_Account_Name
+admin_password=CyberArk123!
+
 #initiate conjur install
 
 install_conjur(){
-#Load ini variables
-source <(grep = config.ini)
 
 #Load the Conjur container. Place conjur-appliance-version.tar.gz in the same folder as this script
 tarname=$(find conjur-app*)
