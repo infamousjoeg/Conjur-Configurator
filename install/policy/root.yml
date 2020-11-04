@@ -89,53 +89,6 @@
         privilege: [ "execute" ]
         resource: !webservice
 
-    - !policy
-      id: authn-azure/prod
-      body:
-        - !webservice
-          id: status
-      
-        - !variable
-          id: provider-uri 
-
-        - &azurehosts
-          - !host
-            id: azurevm
-            annotations:
-              authn-azure/subscription-id: ecc73a00-f0c7-4f7e-a29c-4d0b87da00aa
-              authn-azure/resource-group: PPL
-              authn-azure/system-assigned-identity: db2f2d99-701c-48bb-83e1-d35d7fce9e42
-
-          - !host
-            id: azuredatafactory
-            annotations:
-              authn-azure/subscription-id: ecc73a00-f0c7-4f7e-a29c-4d0b87da00aa
-              authn-azure/resource-group: PPL
-              authn-azure/system-assigned-identity: dabe842b-9c9a-4fe5-8eea-af5cb87d0b0a
-            
-        - !group apps
-
-        - !grant
-          role: !group apps
-          members: *azurehosts
-
-        - !permit
-          role: !group apps
-          privilege: [ read, authenticate ]
-          resource: !webservice
-
-    - !policy
-      id: authn-iam/prod
-      body:
-        - !webservice
-
-        - !group clients
-
-        - !permit
-          role: !group clients
-          privileges: [ read, authenticate ]
-          resource: !webservice
-
     - !grant
       role: !layer seed-generation/consumers
       member: !host /conjur/authn-k8s/prod/apps/dap/service_account/conjur-cluster
