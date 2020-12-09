@@ -1,4 +1,68 @@
 #Conjur POC Install - Master install and base policies 
+
+#Introduction message
+intro_message(){
+    clear;
+    echo "Welcome to the Conjur Enterprise Standup Utility! (CESU)"
+    echo "This program can help you configure many different types of Conjur Enterprise instances."
+    function_menu;
+}
+
+function_menu(){
+    menu_option_one() {
+      echo "Hello John!!!"
+    }
+
+    menu_option_two() {
+      echo "Some super cool code by John."
+    }
+
+    press_enter() {
+      echo ""
+      echo -n "	Press Enter to continue "
+      read
+      clear
+    }
+
+    until [ "$selection" = "0" ]; do
+      echo ""
+      echo "    	1  -  Deploy Conjur Enterprise Leader Container."
+      echo "    	2  -  Configure Conjur Enterprise Container as Leader."
+      echo "    	3  -  Deploy Conjur Enterprise Follower Container."
+      echo "    	4  -  Configure Conjur Enterprise Container as Follower."
+      echo "    	0  -  Exit"
+      echo ""
+      echo -n "  Enter selection: "
+      read selection
+      echo ""
+      case $selection in
+        1 ) clear ; deploy_leader_container ; press_enter ;;
+        2 ) clear ; configure_leader_container ; press_enter ;;
+        3 ) clear ; deploy_follower_container ; press_enter ;;
+        4 ) clear ; configure_follower_container ; press_enter ;;
+        0 ) clear ; exit ;;
+        * ) clear ; incorrect_selection ; press_enter ;;
+      esac
+    done
+}
+
+#Handle incorrect selection
+incorrect_selection() {
+    echo "Incorrect selection! Try again."
+}
+
+#check that machine is ready for installation
+prereq_check(){
+    #figure out if Docker is installed
+    
+}
+
+#Deploy the Conjur Enterprise Leader Container
+deploy_leader_container(){
+    #Check for prereqs
+    prereq_check;
+    
+}
 #Please verify the commands ran before running this script in your environment
 
 master_name=fqdn
