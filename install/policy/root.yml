@@ -92,3 +92,24 @@
     - !grant
       role: !layer seed-generation/consumers
       member: !host /conjur/authn-k8s/prod/apps/dap/service_account/conjur-cluster
+
+- !host
+  id: cf-service-broker
+  annotations:
+    platform: cloudfoundry
+
+- !permit
+  role: !host cf-service-broker
+  privilege: read
+  resource: !host cf-service-broker
+
+- !group
+  id: cf-admin-group
+
+- !grant
+  role: !group cf-admin-group
+  member: !host cf-service-broker
+
+- !policy
+  id: pcf
+  owner: !group cf-admin-group
