@@ -12,6 +12,9 @@ Script is intended to install CyberArk Conjur Enterprise Secrets Manager
 1. Clone this repository
 2. chmod +x setup.sh
 3. run ./setup.sh
+4. Select option 1 to deploy a leader/standby container. 
+5. Seleect option 2 to configure the container. This will configure the container deployed with option 1 as a leader. An admin password will be randomly generated. SAVE THE PASSWORD!
+6. (Optional) Select option 3 to deploy the conjur cli container as well as load some generic policies. 
 
 ## Tested Operating Systems
 
