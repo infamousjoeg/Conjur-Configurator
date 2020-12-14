@@ -1,6 +1,6 @@
 # conjur-poc
 
-Script is intended to install CyberArk Conjur Enterprise Edition with generic policies and variables
+Script is intended to install CyberArk Conjur Enterprise Secrets Manager
 
 ## Requirements
 
@@ -10,12 +10,11 @@ Script is intended to install CyberArk Conjur Enterprise Edition with generic po
 ## How To Use
 
 1. Clone this repository
-2. Obtain a copy of conjur enterprise from your CyberArk Account Executive and place it in the install folder
-3. Update the config.ini file values as necessary.
-4. chmod +x setup.sh
-5. run ./setup.sh
+2. chmod +x setup.sh
+3. run ./setup.sh
 
 ## Tested Operating Systems
 
 - CentOS 7.x
+- MacOS 10.15.7
 - Ubuntu 18.x
