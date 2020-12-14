@@ -8,7 +8,7 @@ function_menu(){
       echo "Welcome to the Conjur Enterprise Standup Utility! (CESU)"
       echo "This program can help you configure many different types of Conjur Enterprise instances."
       echo ""
-      echo "    	1  -  Deploy Conjur Enterprise Leader container."
+      echo "    	1  -  Deploy Conjur Enterprise Leader/Standby container."
       echo "    	2  -  Configure Conjur Enterprise container as Leader."
       echo "    	3  -  Configure POC Policies."
       echo "    	4  -  Remove Conjur Enterprise container."
