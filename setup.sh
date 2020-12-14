@@ -70,7 +70,8 @@ prereq_check(){
       then
         echo "Can't find local conjur image."
         echo "Please contact your CyberArk Engineer to obtain the Conjur appliance."
-        function_menu
+        press_enter;
+        function_menu;
       else
         echo "Found local appliance file."
         tarname=$(find conjur-app*)
@@ -138,11 +139,11 @@ configure_leader_container(){
 #remove containers that have been configured
 remove_container(){
   echo "Removing leader container."
-  docker container rm -f $leader_container_id
+  docker container rm -f $leader_container_id &> /dev/null
   echo "Removing CLI container."
-  docker container rm -f $cli_container_id
+  docker container rm -f $cli_container_id &> /dev/null
   echo "Removing docker network."
-  docker network rm conjur
+  docker network rm conjur &> /dev/null
 }
 
 poc_configure(){
