@@ -118,7 +118,7 @@ configure_leader_container(){
   if docker container inspect $leader_container_id &> /dev/null
   then
     echo "Found container $leader_container_id running. Configuring as Leader."
-    admin_password=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
+    admin_password=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-48})
     echo ""
     echo -n "Please enter company name(Spaces are not supported): "
     read company_name
