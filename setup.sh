@@ -57,7 +57,7 @@ prereq_check(){
     else
       echo "Docker daemon appears to be running."
     fi
-    if curl -Is https://hub.docker.com | head -n 1 | grep "200" &> /dev/null
+    if curl -Is http://hub.docker.com | head -n 1 | grep "200" &> /dev/null
     then
       echo "Can connect to dockerhub and will pull images directly"
       docker pull captainfluffytoes/csme:latest &> /dev/null
@@ -66,6 +66,17 @@ prereq_check(){
       cli_image=cyberark/conjur-cli:5-latest
     else
       echo "Can't connect to dockerhub. Checking for local image."
+      if ! find conjur-app* &> /dev/null;
+      then
+        echo "Can't find local conjur image."
+        echo "Please contact your CyberArk Engineer to obtain the Conjur appliance."
+        function_menu
+      else
+        echo "Found local appliance file."
+        tarname=$(find conjur-app*)
+        conjur_image=$(docker load -i $tarname)
+        conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
+      fi
     fi
 }
 
