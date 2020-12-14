@@ -150,11 +150,6 @@ poc_configure(){
 echo "Standing up the CLI container."
 cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v policy:/policy --entrypoint "" cyberark/conjur-cli:5 sleep infinity)
 
-#set the company name in the cli-retrieve-password.sh script
-echo "Updating password retreive script with correct values."
-sed -i "s/master_name=.*/master_name=$fqdn/g" policy/cli-retrieve-password.sh
-sed -i "s/company_name=.*/company_name=$company_name/g" policy/cli-retrieve-password.sh
-
 #Init conjur session from CLI container
 echo "Configured CLI container to talk to leader."
 docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn <<< yes &> /dev/null
