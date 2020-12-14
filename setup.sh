@@ -136,6 +136,10 @@ configure_leader_container(){
   fi
 }
 
+generate_strong_password(){
+  
+}
+
 #remove containers that have been configured
 remove_container(){
   echo "Removing leader container."
