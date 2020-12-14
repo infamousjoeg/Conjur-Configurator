@@ -74,7 +74,7 @@ deploy_leader_container(){
     #Check for prereqs
     prereq_check;
     echo "All requirement checks have passed. Starting configuration of Conjur Enterprise Leader Container."
-    echo -n "Enter FQDN of Conjur: "
+    echo -n "Enter the FQDN of Conjur: "
     read fqdn
     echo "Creating local folders."
     mkdir -p {security,configuration,backup,seeds,logs}
