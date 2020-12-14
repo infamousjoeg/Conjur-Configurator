@@ -85,7 +85,7 @@ deploy_leader_container(){
     #Check for prereqs
     prereq_check;
     echo "All requirement checks have passed. Starting configuration of Conjur Enterprise Leader Container."
-    echo -n "Enter the FQDN of Conjur: "
+    echo -n "Enter the FQDN for the Conjur Leader and Standby instances: "
     read fqdn
     echo "Creating local folders."
     mkdir -p {security,configuration,backup,seeds,logs}
@@ -119,11 +119,17 @@ configure_leader_container(){
     echo "Found container $leader_container_id running. Configuring as Leader."
     admin_password=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-32})
     echo ""
-    echo -n "Please enter company name: "
+    echo -n "Please enter company name(Spaces are not supported): "
     read company_name
-    docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn --admin-password $admin_password $company_name
-    echo "Conjur Leader successfully configured!!!"
-    echo "Admin Password is: $admin_password"
+    if [[ $company_name = *" "* ]]; then
+      echo "Company name should not contain any spaces."
+      configure_leader_container
+    else
+      echo "Configuring Conjur Leader container using company name: $company_name"
+      docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn --admin-password $admin_password $company_name
+      echo "Conjur Leader successfully configured!!!"
+      echo "Admin Password is: $admin_password"
+    fi
   else
     echo "Couldn't find container $leader_container_id running. Please stand up a leader/standby container from the main menu."
   fi
