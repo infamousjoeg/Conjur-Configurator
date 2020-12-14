@@ -57,7 +57,7 @@ prereq_check(){
     else
       echo "Docker daemon appears to be running."
     fi
-    if curl -Is http://hub.docker.com | head -n 1 | grep "200" &> /dev/null
+    if curl -Is https://hub.docker.com | head -n 1 | grep "200" &> /dev/null
     then
       echo "Can connect to dockerhub and will pull images directly"
       docker pull captainfluffytoes/csme:latest &> /dev/null
