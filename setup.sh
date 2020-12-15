@@ -119,7 +119,7 @@ configure_leader_container(){
   then
     echo "Found container $leader_container_id running. Configuring as Leader."
     #admin_password=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-48})
-    admin_password=generate_strong_password
+    admin_password=$(generate_strong_password)
     echo ""
     echo -n "Please enter company name(Spaces are not supported): "
     read company_name
@@ -138,11 +138,11 @@ configure_leader_container(){
 }
 
 generate_strong_password(){
-  pass_part_1=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-16})
-  pass_part_2=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-16})
-  pass_part_3=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-16})
-  pass=$passpart_1+$pass_part2+$pass_part_3
-  return $pass
+  pass_part_1=$(LC_ALL=C < /dev/urandom tr -dc 'A-Za-z0-9_!@#$%^&*()\-+=' | head -c${1:-16})
+  pass_part_2=$(LC_ALL=C < /dev/urandom tr -dc 'A-Za-z0-9_!@#$%^&*()\-+=' | head -c${1:-16})
+  pass_part_3=$(LC_ALL=C < /dev/urandom tr -dc 'A-Za-z0-9_!@#$%^&*()\-+=' | head -c${1:-16})
+  pass="$pass_part_1"+"$pass_part_2"+"$pass_part_3"
+  echo "$pass"
 }
 
 #remove containers that have been configured
