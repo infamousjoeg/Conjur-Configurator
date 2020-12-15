@@ -120,7 +120,7 @@ configure_leader_container(){
     echo "Found container $leader_container_id running. Configuring as Leader."
     admin_password=$(generate_strong_password)
     echo ""
-    echo -n "Please enter company name(Spaces are not supported): "
+    echo -n "Please enter company short name(Spaces are not supported): "
     read company_name
     if [[ $company_name = *" "* ]]; then
       echo "Company name should not contain any spaces."
