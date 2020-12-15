@@ -86,15 +86,15 @@ deploy_leader_container(){
     #Check for prereqs
     prereq_check;
     echo "All requirement checks have passed. Starting configuration of Conjur Enterprise Leader Container."
-    echo -n "Enter the FQDN for the Conjur Leader and Standby instances: "
-    read fqdn
+    echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer: "
+    read fqdn_loadbalancer
     echo "Creating local folders."
     mkdir -p {security,configuration,backup,seeds,logs}
     echo "Creating Conjur Docker network."
     docker network create conjur &> /dev/null
     echo "Starting container."
     leader_container_id=$(docker container run \
-    --name $fqdn \
+    --name $fqdn_loadbalancer \
     --detach \
     --network conjur \
     --restart=unless-stopped \
@@ -118,7 +118,6 @@ configure_leader_container(){
   if docker container inspect $leader_container_id &> /dev/null
   then
     echo "Found container $leader_container_id running. Configuring as Leader."
-    #admin_password=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-48})
     admin_password=$(generate_strong_password)
     echo ""
     echo -n "Please enter company name(Spaces are not supported): "
@@ -128,7 +127,7 @@ configure_leader_container(){
       configure_leader_container
     else
       echo "Configuring Conjur Leader container using company name: $company_name"
-      docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn --admin-password $admin_password $company_name
+      docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer --admin-password $admin_password $company_name
       echo "Conjur Leader successfully configured!!!"
       echo "Admin Password is: $admin_password"
     fi
@@ -162,7 +161,7 @@ cli_container_id=$(docker container run -d --name conjur-cli --network conjur --
 
 #Init conjur session from CLI container
 echo "Configured CLI container to talk to leader."
-docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn <<< yes &> /dev/null
+docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer <<< yes &> /dev/null
 
 #Login to conjur and load policy
 echo "Logging into leader as admin."
