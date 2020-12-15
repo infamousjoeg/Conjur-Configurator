@@ -129,7 +129,9 @@ configure_leader_container(){
       echo "Configuring Conjur Leader container using company name: $company_name"
       docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer --admin-password $admin_password $company_name
       echo "Conjur Leader successfully configured!!!"
+      echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
       echo "Admin Password is: $admin_password"
+      echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
     fi
   else
     echo "Couldn't find container $leader_container_id running. Please stand up a leader/standby container from the main menu."
