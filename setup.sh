@@ -2,6 +2,32 @@
 #Conjur POC Install - Master install and base policies 
 
 #menu
+import_menu(){
+    until [ "$selection" = "0" ]; do
+      clear;
+      echo "Welcome to the Conjur Enterprise Standup Utility! (CESU)"
+      echo "This program can help you configure many different types of Conjur Enterprise instances."
+      echo ""
+      echo "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+      echo "|||||||||||||A configuration file from a previous run has been detected!!!!|||||||||||||"
+      echo "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+      echo ""
+      echo "    	1  -  Import previous configuration?"
+      echo "    	2  -  Start new configuration?"
+      echo "    	0  -  Exit"
+      echo ""
+      echo -n "  Enter selection: "
+      read selection
+      echo ""
+      case $selection in
+        1 ) clear ; import_config ; press_enter ;;
+        2 ) clear ; delete_config ; press_enter ; function_menu ; exit ;;
+        0 ) clear ; exit ;;
+        * ) clear ; incorrect_selection ; press_enter ;;
+      esac
+    done
+}
+
 function_menu(){
     until [ "$selection" = "0" ]; do
       clear;
@@ -38,6 +64,26 @@ press_enter() {
 #Handle incorrect selection
 incorrect_selection() {
     echo "Incorrect selection! Try again."
+}
+
+variable_import(){
+  if [ -a ".config" ];
+  then
+    variable_file=1
+    import_menu
+  else
+    variable_file=0
+    echo "No file found"
+    function_menu
+  fi
+}
+
+import_config(){
+  source .config 
+}
+
+delete_config(){
+  echo "delete config"
 }
 
 #check that machine is ready for installation
@@ -201,4 +247,4 @@ echo "Creating dummy secret for jenkins"
 docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
 }
 
-function_menu
+variable_import
