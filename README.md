@@ -6,6 +6,7 @@ Script is intended to install CyberArk Conjur Enterprise Secrets Manager
 
 1. Supported OS (listed below) with sudo capability
 2. Internet connectivity
+3. Docker(CE/EE)
 
 ## How To Use
 
