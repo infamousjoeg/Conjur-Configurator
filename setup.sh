@@ -111,7 +111,7 @@ create_config(){
     echo "Configuration file exists."
   else
     echo "Creating configuration file \"$config_filename\" in \"$config_dir\"."
-    mkdir -p $config_dir
+    mkdir -p $config_dir/
     cat <<EOF > $config_filepath
 conjur_image=
 cli_image=
@@ -220,7 +220,7 @@ configure_leader_container(){
     echo "Found container $leader_container_id running. Configuring as Leader."
     admin_password=$(generate_strong_password)
     echo ""
-    echo -n "Please enter company short name(Spaces are not supported): "
+    echo -n "Please enter company short name(Spaces are not supported and don't use 'localhost' or 'conjur'): "
     read company_name
     update_config 'company_name' $company_name
     if [[ $company_name = *" "* ]]; then
