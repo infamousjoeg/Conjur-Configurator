@@ -20,5 +20,5 @@ This script is intended to install CyberArk Conjur Enterprise Secrets Manager th
 ## Tested Operating Systems
 
 - CentOS 7.x
-- MacOS 10.15.7
-- Ubuntu 18.x
+- MacOS 10.15.7,11.1
+- Ubuntu 18.x,19.x,20.x
