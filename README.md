@@ -30,18 +30,24 @@ The desried result of this option is to start a Master/Standby container with al
 #### Volumes
 1. Security
 2. Configuration
-3. backups
-4. seeds
-5. logs
+3. Backups
+4. Seeds
+5. Logs
 
 #### Ports
-1. 443
-2. 444
-3. 5432
-4. 1999
+1. 443 - Used for secure communications.
+2. 444 - Used for loadblancer verification that doesn't go over 443.
+3. 5432 - Used for postgresql database replication to standby/follower instances.
+4. 1999 - Used for streaming audit log information from follower instances.
 
 ### Option 2
-The desired result of this option is to configure an already started conjur master/standby container as a master.
+The desired result of this option is to configure an already started conjur master/standby container as a master. The container from option 1 will be made into a conjur leader. There is a prompt for the loadbalancer DNS. This program will use this name for BOTH the hostname of the conjur leader instance as well as the container name. Avoid using names that are not supported by DNS and the word 'conjur'(conjur is a reserved name within the leader container). Also stay away from using 'localhost' as this will cause issues with networking.
 
 ### Option 3
-The desired result of this option is to load in some basic conjur policies into a conjur environment. Note that the root policy is being loaded with the "--replace" flag which will overwrite any current root policy. 
+The desired result of this option is to load in some basic conjur policies into a conjur environment. Note that the root policy is being loaded with the "--replace" flag which will overwrite any current root policy. The basic policies loaded are:
+
+1. root
+2. apps
+3. apps/secrets
+
+All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. 
