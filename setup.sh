@@ -1,6 +1,11 @@
 #!/bin/bash
 #Conjur POC Install - Master install and base policies 
 
+#variables
+config_dir="$HOME/.conjur"
+config_filename="conjurinstaller.config"
+config_filepath="$config_dir/$config_filename"
+
 #menu
 import_menu(){
     until [ "$selection" = "0" ]; do
@@ -13,15 +18,15 @@ import_menu(){
       echo "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
       echo ""
       echo "    	1  -  Import previous configuration?"
-      echo "    	2  -  Start new configuration?"
+      echo "    	2  -  Delete old configuration and start a new configuration?"
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
       read selection
       echo ""
       case $selection in
-        1 ) clear ; import_config ; press_enter ;;
-        2 ) clear ; delete_config ; press_enter ; function_menu ; exit ;;
+        1 ) clear ; import_config ; press_enter ; function_menu ; exit ;;
+        2 ) clear ; delete_config ; create_config ; press_enter ; function_menu ; exit ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
       esac
@@ -37,14 +42,14 @@ function_menu(){
       echo "    	1  -  Deploy Conjur Enterprise Leader/Standby container."
       echo "    	2  -  Configure Conjur Enterprise container as Leader."
       echo "    	3  -  Configure POC Policies."
-      echo "    	4  -  Remove Conjur Enterprise container."
+      echo "    	4  -  Remove Conjur Enterprise containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
       read selection
       echo ""
       case $selection in
-        1 ) clear ; deploy_leader_container ; press_enter ;;
+        1 ) clear ; create_config ; deploy_leader_container ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
         3 ) clear ; poc_configure ; press_enter ;;
         4 ) clear ; remove_container ; press_enter ;;
@@ -66,24 +71,54 @@ incorrect_selection() {
     echo "Incorrect selection! Try again."
 }
 
-variable_import(){
-  if [ -a ".config" ];
+config_check(){
+  if [ -a $config_filepath ];
   then
-    variable_file=1
     import_menu
   else
-    variable_file=0
-    echo "No file found"
+    create_config
     function_menu
   fi
 }
 
 import_config(){
-  source .config 
+  local count=$(wc -l < $config_filepath)
+  if [ $count -eq 6 ]
+  then
+    echo "Configuration file is correct."
+    source $config_filepath
+  else
+    echo "Configuration file is malformed."
+    echo "Deleting configureation file and creating new file."
+    create_config
+  fi
 }
 
 delete_config(){
-  echo "delete config"
+  echo "Deleting configuration file in $config_filepath."
+  rm -f $config_filepath
+}
+
+create_config(){
+  if [ -a $config_filepath ];
+  then
+    Echo "Configuration file exists."
+  else
+    echo "Creating configuration file \"$config_filename\" in \"$config_dir\"."
+    mkdir -p $config_dir
+    cat <<EOF > $config_filepath
+conjur_image=
+cli_image=
+fqdn_loadbalancer=
+leader_container_id=
+cli_container_id=
+company_name=
+EOF
+fi
+}
+
+update_config(){
+  sed -i '' "s~$1=.*~$1=$2~" $config_filepath
 }
 
 #check that machine is ready for installation
@@ -110,6 +145,8 @@ prereq_check(){
       docker pull cyberark/conjur-cli:5-latest &> /dev/null
       conjur_image=captainfluffytoes/csme:latest
       cli_image=cyberark/conjur-cli:5-latest
+      update_config 'conjur_image' $conjur_image
+      update_config 'cli_image' $cli_image
     else
       echo "Can't connect to dockerhub. Checking for local image."
       if ! find conjur-app* &> /dev/null;
@@ -123,6 +160,7 @@ prereq_check(){
         tarname=$(find conjur-app*)
         conjur_image=$(docker load -i $tarname)
         conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
+        update_config 'conjur_image' $conjur_image
       fi
     fi
 }
@@ -134,6 +172,7 @@ deploy_leader_container(){
     echo "All requirement checks have passed. Starting configuration of Conjur Enterprise Leader Container."
     echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer: "
     read fqdn_loadbalancer
+    update_config 'fqdn_loadbalancer' $fqdn_loadbalancer
     echo "Creating local folders."
     mkdir -p {security,configuration,backup,seeds,logs}
     echo "Creating Conjur Docker network."
@@ -155,6 +194,7 @@ deploy_leader_container(){
     --volume seeds:/opt/cyberark/dap/seeds:Z \
     --volume logs:/var/log/conjur:Z \
     $conjur_image)
+    update_config 'leader_container_id' $leader_container_id
     echo "Leader/Standby Container deployed!"
 }
 
@@ -168,6 +208,7 @@ configure_leader_container(){
     echo ""
     echo -n "Please enter company short name(Spaces are not supported): "
     read company_name
+    update_config 'company_name' $company_name
     if [[ $company_name = *" "* ]]; then
       echo "Company name should not contain any spaces."
       configure_leader_container
@@ -200,13 +241,14 @@ remove_container(){
   docker container rm -f $cli_container_id &> /dev/null
   echo "Removing docker network."
   docker network rm conjur &> /dev/null
+  delete_config
 }
 
 poc_configure(){
 #create CLI container
 echo "Standing up the CLI container."
 cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v policy:/policy --entrypoint "" cyberark/conjur-cli:5 sleep infinity)
-
+update_config 'cli_container_id' $cli_container_id
 #Init conjur session from CLI container
 echo "Configured CLI container to talk to leader."
 docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer <<< yes &> /dev/null
@@ -220,7 +262,7 @@ echo "Loading app policy."
 app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
 echo "loading secrets policy."
 secrets_policy_output=$(docker exec $cli_container_id conjur policy load apps/secrets /policy/secrets.yml)
-echo "Here is the users that were created:"
+echo "Here are the users that were created:"
 echo $root_policy_output
 echo ""
 
@@ -247,4 +289,4 @@ echo "Creating dummy secret for jenkins"
 docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
 }
 
-variable_import
+config_check
