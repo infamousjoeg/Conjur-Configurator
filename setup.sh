@@ -118,7 +118,15 @@ fi
 }
 
 update_config(){
-  sed -i '' "s~$1=.*~$1=$2~" $config_filepath
+  if [[ "$OSTYPE" == "linux-gnu"* ]]
+  then
+    sed -i'' "s~$1=.*~$1=$2~" $config_filepath
+  elif [[ "$OSTYPE" == "darwin"* ]]
+  then
+    sed -i '' "s~$1=.*~$1=$2~" $config_filepath
+  else
+    echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
+  fi
 }
 
 #check that machine is ready for installation
@@ -247,7 +255,7 @@ remove_container(){
 poc_configure(){
 #create CLI container
 echo "Standing up the CLI container."
-cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v policy:/policy --entrypoint "" cyberark/conjur-cli:5 sleep infinity)
+cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
 update_config 'cli_container_id' $cli_container_id
 #Init conjur session from CLI container
 echo "Configured CLI container to talk to leader."
