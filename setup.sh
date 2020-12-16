@@ -102,7 +102,7 @@ delete_config(){
 create_config(){
   if [ -a $config_filepath ];
   then
-    Echo "Configuration file exists."
+    echo "Configuration file exists."
   else
     echo "Creating configuration file \"$config_filename\" in \"$config_dir\"."
     mkdir -p $config_dir
