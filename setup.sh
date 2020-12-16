@@ -85,16 +85,22 @@ import_config(){
   local count=$(wc -l < $config_filepath)
   if [ $count -eq 6 ]
   then
-    echo "Configuration file is correct."
+    echo "Configuration file is correct!"
+    echo "||||||||||||||||||||||||||||||"
+    echo "Contents of configuration file:"
+    echo "$(cat $config_filepath)"
     source $config_filepath
   else
     echo "Configuration file is malformed."
-    echo "Deleting configureation file and creating new file."
+    echo "Deleting configuration file and creating new blank configuration file."
     create_config
   fi
 }
 
 delete_config(){
+  echo "Contents of old configuration file:"
+  echo "$(cat $config_filepath)"
+  echo ""
   echo "Deleting configuration file in $config_filepath."
   rm -f $config_filepath
 }
