@@ -49,7 +49,7 @@ function_menu(){
       read selection
       echo ""
       case $selection in
-        1 ) clear ; create_config ; deploy_leader_container ; press_enter ;;
+        1 ) clear ; create_config ; prereq_check ; deploy_leader_container ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
         3 ) clear ; poc_configure ; press_enter ;;
         4 ) clear ; remove_container ; press_enter ;;
@@ -177,39 +177,63 @@ prereq_check(){
         update_config 'conjur_image' $conjur_image
       fi
     fi
+    echo "All requirement checks have passed. You are ready to start a conjur leader/standby container."
 }
 
 #Deploy the Conjur Enterprise Leader Container
 deploy_leader_container(){
-    #Check for prereqs
-    prereq_check;
-    echo "All requirement checks have passed. Starting configuration of Conjur Enterprise Leader Container."
-    echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer: "
+    echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer (Name can not be \"localhost\" or \"conjur\" or container any spaces): "
     read fqdn_loadbalancer
-    update_config 'fqdn_loadbalancer' $fqdn_loadbalancer
-    echo "Creating local folders."
-    mkdir -p {security,configuration,backup,seeds,logs}
-    echo "Creating Conjur Docker network."
-    docker network create conjur &> /dev/null
-    echo "Starting container."
-    leader_container_id=$(docker container run \
-    --name $fqdn_loadbalancer \
-    --detach \
-    --network conjur \
-    --restart=unless-stopped \
-    --security-opt seccomp=unconfined \
-    --publish "443:443" \
-    --publish "444:444" \
-    --publish "5432:5432" \
-    --publish "1999:1999" \
-    --volume configuration:/opt/cyberark/dap/configuration:Z \
-    --volume security:/opt/cyberark/dap/security:Z \
-    --volume backups:/opt/conjur/backup:Z \
-    --volume seeds:/opt/cyberark/dap/seeds:Z \
-    --volume logs:/var/log/conjur:Z \
-    $conjur_image)
-    update_config 'leader_container_id' $leader_container_id
-    echo "Leader/Standby Container deployed!"
+    if [[ $fqdn_loadbalancer = *" "* ]] 
+    then
+      echo "Load balancer DNS name as "$fqdn_loadbalancer" is not supported."
+      echo "The name can not:"
+      echo " - Contain any spaces."
+      echo " - Be \"localhost\""
+      echo " - Be \"conjur\""
+      deploy_leader_container
+    elif [[ $fqdn_loadbalancer = localhost ]] 
+    then
+      echo "Load balancer DNS name as "$fqdn_loadbalancer" is not supported."
+      echo "The name can not:"
+      echo " - Contain any spaces."
+      echo " - Be \"localhost\""
+      echo " - Be \"conjur\""
+      deploy_leader_container
+    elif [[ $fqdn_loadbalancer = conjur ]] 
+    then
+      echo "Load balancer DNS name as "$fqdn_loadbalancer" is not supported."
+      echo "The name can not:"
+      echo " - Contain any spaces."
+      echo " - Be \"localhost\""
+      echo " - Be \"conjur\""
+      deploy_leader_container
+    else
+      update_config 'fqdn_loadbalancer' $fqdn_loadbalancer
+      echo "Creating local folders."
+      mkdir -p {security,configuration,backup,seeds,logs}
+      echo "Creating Conjur Docker network."
+      docker network create conjur &> /dev/null
+      echo "Starting container."
+      leader_container_id=$(docker container run \
+      --name $fqdn_loadbalancer \
+      --detach \
+      --network conjur \
+      --restart=unless-stopped \
+      --security-opt seccomp=unconfined \
+      --publish "443:443" \
+      --publish "444:444" \
+      --publish "5432:5432" \
+      --publish "1999:1999" \
+      --volume configuration:/opt/cyberark/dap/configuration:Z \
+      --volume security:/opt/cyberark/dap/security:Z \
+      --volume backups:/opt/conjur/backup:Z \
+      --volume seeds:/opt/cyberark/dap/seeds:Z \
+      --volume logs:/var/log/conjur:Z \
+      $conjur_image)
+      update_config 'leader_container_id' $leader_container_id
+      echo "Leader/Standby Container deployed!"
+    fi
 }
 
 #Configure Conjur Enterprise Leader container as leader.
@@ -220,7 +244,7 @@ configure_leader_container(){
     echo "Found container $leader_container_id running."
     admin_password=$(generate_strong_password)
     echo ""
-    echo -n "Please enter company short name(Spaces are not supported and don't use 'localhost' or 'conjur'): "
+    echo -n "Please enter company short name(Spaces are not supported): "
     read company_name
     if [[ $company_name = *" "* ]] 
     then
