@@ -217,22 +217,53 @@ configure_leader_container(){
   echo "Checking to make sure container is currently running."
   if docker container inspect $leader_container_id &> /dev/null
   then
-    echo "Found container $leader_container_id running. Configuring as Leader."
+    echo "Found container $leader_container_id running."
     admin_password=$(generate_strong_password)
     echo ""
     echo -n "Please enter company short name(Spaces are not supported and don't use 'localhost' or 'conjur'): "
     read company_name
-    update_config 'company_name' $company_name
-    if [[ $company_name = *" "* ]]; then
-      echo "Company name should not contain any spaces."
+    if [[ $company_name = *" "* ]] 
+    then
+      echo "Company name as "$company_name" is not supported."
+      echo "The name can not:"
+      echo " - Contain any spaces."
+      echo " - Be \"localhost\""
+      echo " - Be \"conjur\""
+      configure_leader_container
+    elif [[ $company_name = localhost ]] 
+    then
+      echo "Company name as "$company_name" is not supported."
+      echo "The name can not:"
+      echo " - Contain any spaces."
+      echo " - Be \"localhost\""
+      echo " - Be \"conjur\""
+      configure_leader_container
+    elif [[ $company_name = conjur ]] 
+    then
+      echo "Company name as "$company_name" is not supported."
+      echo "The name can not:"
+      echo " - Contain any spaces."
+      echo " - Be \"localhost\""
+      echo " - Be \"conjur\""
       configure_leader_container
     else
+      update_config 'company_name' $company_name
       echo "Configuring Conjur Leader container using company name: $company_name"
       docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer --admin-password $admin_password $company_name
-      echo "Conjur Leader successfully configured!!!"
-      echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-      echo "Admin Password is: $admin_password"
-      echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+      echo "Checking to make sure container has come up successfully"
+      until $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+      do
+        echo "."
+      done
+      if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+      then
+        echo "Conjur Leader successfully configured!!!"
+        echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+        echo "Admin Password is: $admin_password"
+        echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
+      else
+        echo "Something went wrong with the leader configuration."
+      fi
     fi
   else
     echo "Couldn't find container $leader_container_id running. Please stand up a leader/standby container from the main menu."
