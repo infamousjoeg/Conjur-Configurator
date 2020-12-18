@@ -51,7 +51,7 @@ function_menu(){
       case $selection in
         1 ) clear ; create_config ; prereq_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
-        3 ) clear ; poc_configure ; press_enter ;;
+        3 ) clear ; poc_configure_menu ; press_enter ;;
         4 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
@@ -170,7 +170,7 @@ prereq_check(){
 deploy_leader_container_menu(){
     until [ "$selection" = "0" ]; do
       clear;
-      echo "Deploy Conjur Enterprise Leader/Standby container."
+      echo "Deploy Conjur Leader/Standby container."
       echo ""
       echo "What method should be used to obtain the conjur image?"
       echo "    	1  -  Pull from dockerhub?"
@@ -203,7 +203,7 @@ pull_dockerhub(){
     update_config 'cli_image' $cli_image
   else
     echo "Can't connect to dockerhub."
-    echo "Returning to 'Deploy Conjur Enterprise Leader/Standby container' menu."
+    echo "Returning to 'Deploy Conjur Leader/Standby container' menu."
     press_enter;
     deploy_leader_container_menu;
   fi
@@ -212,11 +212,14 @@ pull_dockerhub(){
 local_registry(){
   if [ $1 = "conjur_ent" ]
   then
-    if ! find conjur-app* &> /dev/null;
+    if [ docker images --filter "reference=registry2.itci.conjur.net/conjur-appliance" ]
+    then
+      echo "Found image in the local registry. Using latest version."
+    elif ! find conjur-app* &> /dev/null;
     then
       echo "Can't find local conjur image in current directory."
       echo "Please contact your CyberArk Engineer to obtain the Conjur appliance."
-      echo "Returning to 'Deploy Conjur Enterprise Leader/Standby container' menu."
+      echo "Returning to 'Deploy Conjur Leader/Standby container' menu."
       press_enter;
       deploy_leader_container_menu;
     else
@@ -226,7 +229,7 @@ local_registry(){
       conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
       update_config 'conjur_image' $conjur_image
     fi
-  elif [ $1 = "conjur_cli "]
+  elif [ $1 = "cli "]
   then
     if ! find conjur-cli* &> /dev/null;
     then
@@ -243,6 +246,10 @@ local_registry(){
       update_config 'conjur_image' $conjur_image
     fi
   fi
+}
+
+import_registry(){
+  
 }
 
 private_registry(){
@@ -395,6 +402,32 @@ remove_container(){
   echo "Removing docker network."
   docker network rm conjur &> /dev/null
   delete_config
+}
+
+poc_configure_menu(){
+    until [ "$selection" = "0" ]; do
+      clear;
+      echo "Deploy Conjur CLI container."
+      echo ""
+      echo "What method should be used to obtain the conjur cli image?"
+      echo "    	1  -  Pull from dockerhub?"
+      echo "    	2  -  Provide image name that pulls from an accessible registry or local registry?"
+      echo "    	3  -  Provide image file for import into local registry?"
+      echo "    	4  -  Return to main menu."
+      echo "    	0  -  Exit"
+      echo ""
+      echo -n "  Enter selection: "
+      read selection
+      echo ""
+      case $selection in
+        1 ) clear ; pull_dockerhub "cli" ; deploy_leader_container ; press_enter ; function_menu ;;
+        2 ) clear ; private_registry "cli" ; deploy_leader_container ; press_enter ; function_menu ;;
+        3 ) clear ; local_registry "cli"  ; deploy_leader_container ; press_enter ; function_menu ;;
+        4 ) clear ; function_menu ;;
+        0 ) clear ; exit ;;
+        * ) clear ; incorrect_selection ; press_enter ;;
+      esac
+    done
 }
 
 poc_configure(){
