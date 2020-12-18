@@ -10,8 +10,8 @@ config_filepath="$config_dir/$config_filename"
 import_menu(){
     until [ "$selection" = "0" ]; do
       clear;
-      echo "Welcome to the Conjur Enterprise Standup Utility! (CESU)"
-      echo "This program can help you configure many different types of Conjur Enterprise instances."
+      echo "Welcome to the Conjur Standup Utility! (CSU)"
+      echo "This program can help you configure many different types of Conjur instances."
       echo ""
       echo "||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
       echo "|||||||||||||A configuration file from a previous run has been detected!!!!|||||||||||||"
@@ -36,12 +36,12 @@ import_menu(){
 function_menu(){
     until [ "$selection" = "0" ]; do
       clear;
-      echo "Welcome to the Conjur Enterprise Standup Utility! (CESU)"
-      echo "This program can help you configure many different types of Conjur Enterprise instances."
+      echo "Welcome to the Conjur Standup Utility! (CSU)"
+      echo "This program can help you configure many different types of Conjur instances."
       echo ""
       echo "    	1  -  Deploy Conjur Enterprise Leader/Standby container."
       echo "    	2  -  Configure Conjur Enterprise container as Leader."
-      echo "    	3  -  Configure POC Policies."
+      echo "    	3  -  Configure POC Policies for Conjur Enterprise."
       echo "    	4  -  Remove Conjur Enterprise containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
@@ -49,7 +49,7 @@ function_menu(){
       read selection
       echo ""
       case $selection in
-        1 ) clear ; create_config ; prereq_check ; deploy_leader_container ; press_enter ;;
+        1 ) clear ; create_config ; prereq_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
         3 ) clear ; poc_configure ; press_enter ;;
         4 ) clear ; remove_container ; press_enter ;;
@@ -137,6 +137,7 @@ update_config(){
 
 #check that machine is ready for installation
 prereq_check(){
+  echo "Checking to see if docker is installed"
     #figure out if Docker is installed
     if ! command -v docker &> /dev/null
     then
@@ -145,43 +146,84 @@ prereq_check(){
     else
       echo "Docker Installed"
     fi
+  echo "Checking if the daemon is accessible"
     if ! docker info >/dev/null 2>&1; 
     then
-      echo "Docker daemon doesn't appear to be running."
-      exit 1
+      echo "Docker daemon doesn't appear to be running or is inaccessible."
+      echo "Returning to main menu."
+      press_enter;
+      function_menu;
     else
       echo "Docker daemon appears to be running."
     fi
-    if curl -Is https://hub.docker.com | head -n 1 | grep "200" &> /dev/null
-    then
-      echo "Can connect to dockerhub and will pull images directly"
-      docker pull captainfluffytoes/csme:latest &> /dev/null
-      docker pull cyberark/conjur-cli:5-latest &> /dev/null
-      conjur_image=captainfluffytoes/csme:latest
-      cli_image=cyberark/conjur-cli:5-latest
-      update_config 'conjur_image' $conjur_image
-      update_config 'cli_image' $cli_image
-    else
-      echo "Can't connect to dockerhub. Checking for local image."
-      if ! find conjur-app* &> /dev/null;
-      then
-        echo "Can't find local conjur image."
-        echo "Please contact your CyberArk Engineer to obtain the Conjur appliance."
-        press_enter;
-        function_menu;
-      else
-        echo "Found local appliance file."
-        tarname=$(find conjur-app*)
-        conjur_image=$(docker load -i $tarname)
-        conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
-        update_config 'conjur_image' $conjur_image
-      fi
-    fi
-    echo "All requirement checks have passed. You are ready to start a conjur leader/standby container."
+    echo "All docker checks have passed."
 }
 
 #Deploy the Conjur Enterprise Leader Container
-deploy_leader_container(){
+deploy_leader_container_menu(){
+    until [ "$selection" = "0" ]; do
+      clear;
+      echo "Deploy Conjur Enterprise Leader/Standby container."
+      echo ""
+      echo "What method should be used to obtain the conjur image?"
+      echo "    	1  -  Pull from dockerhub?"
+      echo "    	2  -  Provide image name that pulls from an accessible registry or local registry?"
+      echo "    	3  -  Provide image file for import into local registry?"
+      echo "    	0  -  Exit"
+      echo ""
+      echo -n "  Enter selection: "
+      read selection
+      echo ""
+      case $selection in
+        1 ) clear ; pull_dockerhub ; deploy_leader_container ; press_enter ; function_menu ; exit ;;
+        2 ) clear ; private_registry ; deploy_leader_container ; press_enter ; function_menu ; exit ;;
+        3 ) clear ; local_registry ; deploy_leader_container ; press_enter ; function_menu ; exit ;;
+        0 ) clear ; exit ;;
+        * ) clear ; incorrect_selection ; press_enter ;;
+      esac
+    done
+}
+
+pull_dockerhub(){
+  if curl -Is https://hub.docker.com | head -n 1 | grep "200" &> /dev/null
+  then
+    echo "Can connect to dockerhub and will pull images directly"
+    docker pull captainfluffytoes/csme:latest &> /dev/null
+    docker pull cyberark/conjur-cli:5-latest &> /dev/null
+    conjur_image=captainfluffytoes/csme:latest
+    cli_image=cyberark/conjur-cli:5-latest
+    update_config 'conjur_image' $conjur_image
+    update_config 'cli_image' $cli_image
+  else
+    echo "Can't connect to dockerhub."
+    echo "Returning to \'Deploy Conjur Enterprise Leader/Standby container\' menu."
+    press_enter;
+    deploy_leader_container_menu;
+  fi
+}
+
+local_registry(){
+  if ! find conjur-app* &> /dev/null;
+  then
+    echo "Can't find local conjur image in current directory."
+    echo "Please contact your CyberArk Engineer to obtain the Conjur appliance."
+    echo "Returning to \'Deploy Conjur Enterprise Leader/Standby container\' menu."
+    press_enter;
+    deploy_leader_container_menu;
+  else
+    echo "Found local appliance file."
+    tarname=$(find conjur-app*)
+    conjur_image=$(docker load -i $tarname)
+    conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
+    update_config 'conjur_image' $conjur_image
+  fi
+}
+
+private_registry(){
+
+}
+
+deploy_leader_container(){    
     echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer (Name can not be \"localhost\" or \"conjur\" or container any spaces): "
     read fqdn_loadbalancer
     if [[ $fqdn_loadbalancer = *" "* ]] 
