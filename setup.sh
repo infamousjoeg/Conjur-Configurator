@@ -102,6 +102,13 @@ delete_config(){
   echo "$(cat $config_filepath)"
   echo ""
   echo "Deleting configuration file in $config_filepath."
+  echo "Removing in memory variables."
+  conjur_image=
+  cli_image=
+  fqdn_loadbalancer=
+  leader_container_id=
+  cli_container_id=
+  company_name=
   rm -f $config_filepath
 }
 
@@ -169,15 +176,17 @@ deploy_leader_container_menu(){
       echo "    	1  -  Pull from dockerhub?"
       echo "    	2  -  Provide image name that pulls from an accessible registry or local registry?"
       echo "    	3  -  Provide image file for import into local registry?"
+      echo "    	4  -  Return to main menu."
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
       read selection
       echo ""
       case $selection in
-        1 ) clear ; pull_dockerhub ; deploy_leader_container ; press_enter ; function_menu ; exit ;;
-        2 ) clear ; private_registry ; deploy_leader_container ; press_enter ; function_menu ; exit ;;
-        3 ) clear ; local_registry ; deploy_leader_container ; press_enter ; function_menu ; exit ;;
+        1 ) clear ; pull_dockerhub ; deploy_leader_container ; press_enter ; function_menu ;;
+        2 ) clear ; private_registry ; deploy_leader_container ; press_enter ; function_menu ;;
+        3 ) clear ; local_registry "conjur_ent"  ; deploy_leader_container ; press_enter ; function_menu ;;
+        4 ) clear ; function_menu ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
       esac
@@ -189,41 +198,74 @@ pull_dockerhub(){
   then
     echo "Can connect to dockerhub and will pull images directly"
     docker pull captainfluffytoes/csme:latest &> /dev/null
-    docker pull cyberark/conjur-cli:5-latest &> /dev/null
     conjur_image=captainfluffytoes/csme:latest
-    cli_image=cyberark/conjur-cli:5-latest
     update_config 'conjur_image' $conjur_image
     update_config 'cli_image' $cli_image
   else
     echo "Can't connect to dockerhub."
-    echo "Returning to \'Deploy Conjur Enterprise Leader/Standby container\' menu."
+    echo "Returning to 'Deploy Conjur Enterprise Leader/Standby container' menu."
     press_enter;
     deploy_leader_container_menu;
   fi
 }
 
 local_registry(){
-  if ! find conjur-app* &> /dev/null;
+  if [ $1 = "conjur_ent" ]
   then
-    echo "Can't find local conjur image in current directory."
-    echo "Please contact your CyberArk Engineer to obtain the Conjur appliance."
-    echo "Returning to \'Deploy Conjur Enterprise Leader/Standby container\' menu."
-    press_enter;
-    deploy_leader_container_menu;
-  else
-    echo "Found local appliance file."
-    tarname=$(find conjur-app*)
-    conjur_image=$(docker load -i $tarname)
-    conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
-    update_config 'conjur_image' $conjur_image
+    if ! find conjur-app* &> /dev/null;
+    then
+      echo "Can't find local conjur image in current directory."
+      echo "Please contact your CyberArk Engineer to obtain the Conjur appliance."
+      echo "Returning to 'Deploy Conjur Enterprise Leader/Standby container' menu."
+      press_enter;
+      deploy_leader_container_menu;
+    else
+      echo "Found local appliance file."
+      tarname=$(find conjur-app*)
+      conjur_image=$(docker load -i $tarname)
+      conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
+      update_config 'conjur_image' $conjur_image
+    fi
+  elif [ $1 = "conjur_cli "]
+  then
+    if ! find conjur-cli* &> /dev/null;
+    then
+      echo "Can't find local conjur image in current directory."
+      echo "Please contact your CyberArk Engineer to obtain the Conjur CLI."
+      echo "Returning to main menu."
+      press_enter;
+      function_menu;
+    else
+      echo "Found local appliance file."
+      tarname=$(find conjur-app*)
+      conjur_image=$(docker load -i $tarname)
+      conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
+      update_config 'conjur_image' $conjur_image
+    fi
   fi
 }
 
 private_registry(){
-
+  echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
+  read conjur_image
+  if ! docker pull $conjur_image
+  then
+    echo "Couldn't pull image from registry. Please verify network connection and/or verify that docker is properly authenticated."
+    press_enter;
+    deploy_leader_container_menu;
+  else
+    echo "Connection to registry successful!"
+    echo "Pulling image."
+    docker pull $conjur_image &> /dev/null
+    echo ""
+    echo "Successfully pulled image!"
+    press_enter;
+  fi
 }
 
 deploy_leader_container(){    
+    echo "Starting configuration of the leader container."
+    echo ""
     echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer (Name can not be \"localhost\" or \"conjur\" or container any spaces): "
     read fqdn_loadbalancer
     if [[ $fqdn_loadbalancer = *" "* ]] 
@@ -286,7 +328,7 @@ configure_leader_container(){
     echo "Found container $leader_container_id running."
     admin_password=$(generate_strong_password)
     echo ""
-    echo -n "Please enter company short name(Spaces are not supported): "
+    echo -n "Please enter company short name (Spaces are not supported): "
     read company_name
     if [[ $company_name = *" "* ]] 
     then
@@ -358,6 +400,22 @@ remove_container(){
 poc_configure(){
 #create CLI container
 echo "Standing up the CLI container."
+cli_image=cyberark/conjur-cli:5-latest
+update_config 'cli_image' $cli_image
+if docker images --filter "reference=$cli_image" &> /dev/null
+then
+  echo "CLI image exists in local registry."
+else
+  echo "CLI image doesn't exist in the local registry. Trying to pull from Dockerhub."
+  if ! docker pull $cli_image &> /dev/null
+  then 
+    echo "Couldn't pull image from dockerhub"
+    echo "Please open access to dockerhub or load the CLI image into the local registry."
+    echo "Returning to main menu."
+    press_enter;
+    function_menu;
+  fi 
+fi
 cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
 update_config 'cli_container_id' $cli_container_id
 #Init conjur session from CLI container
