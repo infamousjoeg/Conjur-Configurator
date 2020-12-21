@@ -49,10 +49,66 @@ function_menu(){
       read selection
       echo ""
       case $selection in
-        1 ) clear ; create_config ; prereq_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
+        1 ) clear ; create_config ; docker_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
         3 ) clear ; poc_configure_menu ; press_enter ;;
         4 ) clear ; remove_container ; press_enter ;;
+        0 ) clear ; exit ;;
+        * ) clear ; incorrect_selection ; press_enter ;;
+      esac
+    done
+}
+
+deploy_leader_container_menu(){
+    until [ "$selection" = "0" ]; do
+      clear;
+      echo "Deploy Conjur Leader/Standby container."
+      echo ""
+      echo "What method should be used to obtain the conjur image?"
+      echo "    	1  -  Pull from dockerhub?"
+      echo "    	2  -  Provide image name that pulls from an accessible private remote registry?"
+      echo "    	3  -  Provide image name to use that's stored in the local regsitry?"
+      echo "    	4  -  Provide image file for import into local registry?"
+      echo "    	5  -  Return to main menu."
+      echo "    	0  -  Exit"
+      echo ""
+      echo -n "  Enter selection: "
+      read selection
+      echo ""
+      case $selection in
+        1 ) clear ; pull_dockerhub "conjur_ent" ; press_enter ; deploy_leader_container ; press_enter ; function_menu ;;
+        2 ) clear ; private_registry "conjur_ent" ; deploy_leader_container ; press_enter ; function_menu ;;
+        3 ) clear ; local_registry "conjur_ent" ; deploy_leader_container ; press_enter ; function_menu ;;
+        4 ) clear ; import_registry "conjur_ent" ; deploy_leader_container ; press_enter ; function_menu ;;
+        5 ) clear ; function_menu ;;
+        0 ) clear ; exit ;;
+        * ) clear ; incorrect_selection ; press_enter ;;
+      esac
+    done
+}
+
+poc_configure_menu(){
+    until [ "$selection" = "0" ]; do
+      clear;
+      echo "Deploy Conjur CLI container."
+      echo ""
+      echo "What method should be used to obtain the conjur cli image?"
+      echo "    	1  -  Pull from dockerhub?"
+      echo "    	2  -  Provide image name that pulls from an accessible private remote registry?"
+      echo "    	3  -  Provide image name to use that's stored in the local regsitry?"
+      echo "    	4  -  Provide image file for import into local registry?"
+      echo "    	5  -  Return to main menu."
+      echo "    	0  -  Exit"
+      echo ""
+      echo -n "  Enter selection: "
+      read selection
+      echo ""
+      case $selection in
+        1 ) clear ; pull_dockerhub "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
+        2 ) clear ; private_registry "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
+        3 ) clear ; local_registry "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
+        4 ) clear ; import_registry "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
+        5 ) clear ; function_menu ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
       esac
@@ -142,13 +198,14 @@ update_config(){
   fi
 }
 
-#check that machine is ready for installation
-prereq_check(){
+#check that machine has docker.
+docker_check(){
   echo "Checking to see if docker is installed"
     #figure out if Docker is installed
     if ! command -v docker &> /dev/null
     then
       echo "Docker not found. Please install docker."
+      press_enter;
       exit 1
     else
       echo "Docker Installed"
@@ -166,46 +223,27 @@ prereq_check(){
     echo "All docker checks have passed."
 }
 
-#Deploy the Conjur Enterprise Leader Container
-deploy_leader_container_menu(){
-    until [ "$selection" = "0" ]; do
-      clear;
-      echo "Deploy Conjur Leader/Standby container."
-      echo ""
-      echo "What method should be used to obtain the conjur image?"
-      echo "    	1  -  Pull from dockerhub?"
-      echo "    	2  -  Provide image name that pulls from an accessible registry or local registry?"
-      echo "    	3  -  Provide image file for import into local registry?"
-      echo "    	4  -  Return to main menu."
-      echo "    	0  -  Exit"
-      echo ""
-      echo -n "  Enter selection: "
-      read selection
-      echo ""
-      case $selection in
-        1 ) clear ; pull_dockerhub ; deploy_leader_container ; press_enter ; function_menu ;;
-        2 ) clear ; private_registry ; deploy_leader_container ; press_enter ; function_menu ;;
-        3 ) clear ; local_registry "conjur_ent"  ; deploy_leader_container ; press_enter ; function_menu ;;
-        4 ) clear ; function_menu ;;
-        0 ) clear ; exit ;;
-        * ) clear ; incorrect_selection ; press_enter ;;
-      esac
-    done
-}
 
 pull_dockerhub(){
   if curl -Is https://hub.docker.com | head -n 1 | grep "200" &> /dev/null
   then
-    echo "Can connect to dockerhub and will pull images directly"
-    docker pull captainfluffytoes/csme:latest &> /dev/null
-    conjur_image=captainfluffytoes/csme:latest
-    update_config 'conjur_image' $conjur_image
-    update_config 'cli_image' $cli_image
+    echo "Can connect to dockerhub and will pull image directly"
+        if [ $1 = "conjur_ent" ]
+        then
+          conjur_image=captainfluffytoes/csme:latest
+          docker pull $conjur_image &> /dev/null
+          update_config 'conjur_image' $conjur_image
+        elif [ $1 = "cli "]
+        then
+          cli_image=captainfluffytoes/csme:latest
+          docker pull cyberark/conjur-cli:5-latest &> /dev/null
+          update_config 'cli_image' $cli_image
+        fi
   else
     echo "Can't connect to dockerhub."
-    echo "Returning to 'Deploy Conjur Leader/Standby container' menu."
-    press_enter;
-    deploy_leader_container_menu;
+    echo "Returning to previous menu."
+    press_enter
+    ${FUNCNAME[1]};
   fi
 }
 
@@ -249,7 +287,7 @@ local_registry(){
 }
 
 import_registry(){
-  
+  echo "import registry"
 }
 
 private_registry(){
@@ -275,23 +313,7 @@ deploy_leader_container(){
     echo ""
     echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer (Name can not be \"localhost\" or \"conjur\" or container any spaces): "
     read fqdn_loadbalancer
-    if [[ $fqdn_loadbalancer = *" "* ]] 
-    then
-      echo "Load balancer DNS name as "$fqdn_loadbalancer" is not supported."
-      echo "The name can not:"
-      echo " - Contain any spaces."
-      echo " - Be \"localhost\""
-      echo " - Be \"conjur\""
-      deploy_leader_container
-    elif [[ $fqdn_loadbalancer = localhost ]] 
-    then
-      echo "Load balancer DNS name as "$fqdn_loadbalancer" is not supported."
-      echo "The name can not:"
-      echo " - Contain any spaces."
-      echo " - Be \"localhost\""
-      echo " - Be \"conjur\""
-      deploy_leader_container
-    elif [[ $fqdn_loadbalancer = conjur ]] 
+    if [[ $fqdn_loadbalancer = *" "* ]] || [[ $fqdn_loadbalancer = localhost ]] || [[ $fqdn_loadbalancer = conjur ]]
     then
       echo "Load balancer DNS name as "$fqdn_loadbalancer" is not supported."
       echo "The name can not:"
@@ -337,23 +359,7 @@ configure_leader_container(){
     echo ""
     echo -n "Please enter company short name (Spaces are not supported): "
     read company_name
-    if [[ $company_name = *" "* ]] 
-    then
-      echo "Company name as "$company_name" is not supported."
-      echo "The name can not:"
-      echo " - Contain any spaces."
-      echo " - Be \"localhost\""
-      echo " - Be \"conjur\""
-      configure_leader_container
-    elif [[ $company_name = localhost ]] 
-    then
-      echo "Company name as "$company_name" is not supported."
-      echo "The name can not:"
-      echo " - Contain any spaces."
-      echo " - Be \"localhost\""
-      echo " - Be \"conjur\""
-      configure_leader_container
-    elif [[ $company_name = conjur ]] 
+    if [[ $company_name = *" "* ]] || [[ $company_name = localhost ]] || [[ $company_name = conjur ]]
     then
       echo "Company name as "$company_name" is not supported."
       echo "The name can not:"
@@ -404,91 +410,65 @@ remove_container(){
   delete_config
 }
 
-poc_configure_menu(){
-    until [ "$selection" = "0" ]; do
-      clear;
-      echo "Deploy Conjur CLI container."
-      echo ""
-      echo "What method should be used to obtain the conjur cli image?"
-      echo "    	1  -  Pull from dockerhub?"
-      echo "    	2  -  Provide image name that pulls from an accessible registry or local registry?"
-      echo "    	3  -  Provide image file for import into local registry?"
-      echo "    	4  -  Return to main menu."
-      echo "    	0  -  Exit"
-      echo ""
-      echo -n "  Enter selection: "
-      read selection
-      echo ""
-      case $selection in
-        1 ) clear ; pull_dockerhub "cli" ; deploy_leader_container ; press_enter ; function_menu ;;
-        2 ) clear ; private_registry "cli" ; deploy_leader_container ; press_enter ; function_menu ;;
-        3 ) clear ; local_registry "cli"  ; deploy_leader_container ; press_enter ; function_menu ;;
-        4 ) clear ; function_menu ;;
-        0 ) clear ; exit ;;
-        * ) clear ; incorrect_selection ; press_enter ;;
-      esac
-    done
-}
-
 poc_configure(){
 #create CLI container
-echo "Standing up the CLI container."
-cli_image=cyberark/conjur-cli:5-latest
-update_config 'cli_image' $cli_image
-if docker images --filter "reference=$cli_image" &> /dev/null
-then
-  echo "CLI image exists in local registry."
-else
-  echo "CLI image doesn't exist in the local registry. Trying to pull from Dockerhub."
-  if ! docker pull $cli_image &> /dev/null
-  then 
-    echo "Couldn't pull image from dockerhub"
-    echo "Please open access to dockerhub or load the CLI image into the local registry."
-    echo "Returning to main menu."
-    press_enter;
-    function_menu;
-  fi 
-fi
-cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
-update_config 'cli_container_id' $cli_container_id
-#Init conjur session from CLI container
-echo "Configured CLI container to talk to leader."
-docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer <<< yes &> /dev/null
+  echo "Standing up the CLI container."
+  cli_image=cyberark/conjur-cli:5-latest
+  update_config 'cli_image' $cli_image
+  if docker images --filter "reference=$cli_image" &> /dev/null
+  then
+    echo "CLI image exists in local registry."
+  else
+    echo "CLI image doesn't exist in the local registry. Trying to pull from Dockerhub."
+    if ! docker pull $cli_image &> /dev/null
+    then 
+      echo "Couldn't pull image from dockerhub"
+      echo "Please open access to dockerhub or load the CLI image into the local registry."
+      echo "Returning to main menu."
+      press_enter;
+      function_menu;
+    fi 
+  fi
+  cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
+  update_config 'cli_container_id' $cli_container_id
+  #Init conjur session from CLI container
+  echo "Configured CLI container to talk to leader."
+  docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer <<< yes &> /dev/null
 
-#Login to conjur and load policy
-echo "Logging into leader as admin."
-docker exec $cli_container_id conjur authn login -u admin -p $admin_password
-echo "Loading root policy."
-root_policy_output=$(docker exec $cli_container_id conjur policy load --replace root /policy/root.yml)
-echo "Loading app policy."
-app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
-echo "loading secrets policy."
-secrets_policy_output=$(docker exec $cli_container_id conjur policy load apps/secrets /policy/secrets.yml)
-echo "Here are the users that were created:"
-echo $root_policy_output
-echo ""
+  #Login to conjur and load policy
+  echo "Logging into leader as admin."
+  docker exec $cli_container_id conjur authn login -u admin -p $admin_password
+  echo "Loading root policy."
+  root_policy_output=$(docker exec $cli_container_id conjur policy load --replace root /policy/root.yml)
+  echo "Loading app policy."
+  app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
+  echo "loading secrets policy."
+  secrets_policy_output=$(docker exec $cli_container_id conjur policy load apps/secrets /policy/secrets.yml)
+  echo "Here are the users that were created:"
+  echo $root_policy_output
+  echo ""
 
-# set values for passwords in secrets policy
-echo "Creating dummy secret for ansible"
-docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/ansible_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for electric flow"
-docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/electric_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for openshift"
-docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/openshift_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for docker"
-docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/docker_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for aws"
-docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/aws_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for azure"
-docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/azure_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for kubernetes"
-docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/kubernetes_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for puppet"
-docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/puppet_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for chef"
-docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/chef_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-echo "Creating dummy secret for jenkins"
-docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  # set values for passwords in secrets policy
+  echo "Creating dummy secret for ansible"
+  docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/ansible_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for electric flow"
+  docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/electric_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for openshift"
+  docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/openshift_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for docker"
+  docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/docker_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for aws"
+  docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/aws_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for azure"
+  docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/azure_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for kubernetes"
+  docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/kubernetes_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for puppet"
+  docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/puppet_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for chef"
+  docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/chef_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for jenkins"
+  docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
 }
 
 config_check
