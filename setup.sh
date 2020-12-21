@@ -231,12 +231,14 @@ pull_dockerhub(){
         if [ $1 = "conjur_ent" ]
         then
           conjur_image=captainfluffytoes/csme:latest
+          echo "Pulling image: $conjur_image"
           docker pull $conjur_image &> /dev/null
           update_config 'conjur_image' $conjur_image
         elif [ $1 = "cli "]
         then
-          cli_image=captainfluffytoes/csme:latest
-          docker pull cyberark/conjur-cli:5-latest &> /dev/null
+          cli_image=cyberark/conjur-cli:5-latest
+          echo "Pulling image: $cli_image"
+          docker pull $cli_image &> /dev/null
           update_config 'cli_image' $cli_image
         fi
   else
