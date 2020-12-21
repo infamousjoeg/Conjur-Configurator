@@ -430,7 +430,8 @@ poc_configure(){
   if [ -z $admin_password ]
   then
     echo -n "Enter your admin password: "
-    read admin_password
+    read -s admin_password
+    echo ""
     poc_configure;
   else
     echo "Standing up the CLI container."
