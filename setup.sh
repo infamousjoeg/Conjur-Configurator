@@ -39,10 +39,10 @@ function_menu(){
       echo "Welcome to the Conjur Standup Utility! (CSU)"
       echo "This program can help you configure many different types of Conjur instances."
       echo ""
-      echo "    	1  -  Deploy Conjur Enterprise Leader/Standby container."
-      echo "    	2  -  Configure Conjur Enterprise container as Leader."
-      echo "    	3  -  Configure POC Policies for Conjur Enterprise."
-      echo "    	4  -  Remove Conjur Enterprise containers and configuration files."
+      echo "    	1  -  Deploy Conjur Leader/Standby container."
+      echo "    	2  -  Configure Conjur container as Leader."
+      echo "    	3  -  Configure POC Policies for Conjur."
+      echo "    	4  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
@@ -149,6 +149,7 @@ import_config(){
   else
     echo "Configuration file is malformed."
     echo "Deleting configuration file and creating new blank configuration file."
+    delete_config
     create_config
   fi
 }
