@@ -249,6 +249,30 @@ pull_dockerhub(){
   fi
 }
 
+private_registry(){
+  echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
+  read image
+  if [ $1 = "conjur_ent" ]
+  then
+    update_config 'conjur_image' $image
+  elif [ $1 = "cli" ]
+  then
+    update_config 'cli_image' $image
+  fi
+  if ! docker pull $image
+  then
+    echo "Couldn't pull image from registry. Please verify network connection and/or verify that docker is properly authenticated."
+    press_enter;
+    ${FUNCNAME[1]};
+  else
+    echo "Connection to registry successful!"
+    echo "Pulling image."
+    docker pull $image &> /dev/null
+    echo ""
+    echo "Successfully pulled image!"
+  fi
+}
+
 local_registry(){
   if [ $1 = "conjur_ent" ]
   then
@@ -290,24 +314,6 @@ local_registry(){
 
 import_registry(){
   echo "import registry"
-}
-
-private_registry(){
-  echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
-  read conjur_image
-  if ! docker pull $conjur_image
-  then
-    echo "Couldn't pull image from registry. Please verify network connection and/or verify that docker is properly authenticated."
-    press_enter;
-    deploy_leader_container_menu;
-  else
-    echo "Connection to registry successful!"
-    echo "Pulling image."
-    docker pull $conjur_image &> /dev/null
-    echo ""
-    echo "Successfully pulled image!"
-    press_enter;
-  fi
 }
 
 deploy_leader_container(){    
