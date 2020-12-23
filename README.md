@@ -51,3 +51,15 @@ The desired result of this option is to load in some basic conjur policies into 
 3. apps/secrets
 
 All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. 
+
+## Local Files
+All local files are saved to a hidden directory in the user's home folder alled '.conjur'. This is where the configuration file is stored as well as the volume mounts for the Conjur leader container. Here is a break down of the folders and files that are created:
+
+| File or Folder name  | Purpose |
+| ------------- |:-------------:|
+| conjurconfig | This file contains information that is needed to re-run the setup program. This allows persistence for things like container IDs. |
+| security | Location for the Docker seccomp.json file |
+| configuration | Location for the DAP configuration file |
+| backup | Allows backups to be available on the host server |
+| seeds | Simplifies transferring seed files into the DAP container |
+| logs | Provides direct access to the DAP logs locally |
