@@ -53,7 +53,7 @@ The desired result of this option is to load in some basic conjur policies into 
 All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. 
 
 ## Local Files
-All local files are saved to a hidden directory in the user's home folder alled '.conjur'. This is where the configuration file is stored as well as the volume mounts for the Conjur leader container. Here is a break down of the folders and files that are created:
+All local files are saved to a hidden directory in the user's home folder called '.conjur'. This is where the configuration file is stored as well as the volume mounts for the Conjur leader container. Here is a break down of the folders and files that are created:
 
 | File or Folder name  | Purpose |
 | ------------- |:-------------:|
