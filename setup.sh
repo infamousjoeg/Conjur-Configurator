@@ -301,14 +301,14 @@ local_registry(){
 
 import_registry(){
   echo "Scanning current directory for for saved image file."
-  if [ find conjur-app* &> /dev/null ] && [ $1 = "conjur_ent" ]
+  if [ $(find conjur-app*) &> /dev/null ] && [ $1 = "conjur_ent" ]
   then
     echo "Found local appliance file."
     tarname=$(find conjur-app*)
     conjur_image=$(docker load -i $tarname)
     conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
     update_config 'conjur_image' $conjur_image
-  elif [ find conjur-cli* &> /dev/null ] && [ $1 = "cli" ]
+  elif [ $(find conjur-cli*) &> /dev/null ] && [ $1 = "cli" ]
   then
     echo "Found local cli file."
     tarname=$(find conjur-cli*)
@@ -340,7 +340,7 @@ deploy_leader_container(){
     else
       update_config 'fqdn_loadbalancer' $fqdn_loadbalancer
       echo "Creating local folders."
-      mkdir -p {security,configuration,backup,seeds,logs}
+      mkdir -p $config_dir/{security,configuration,backup,seeds,logs}
       echo "Creating Conjur Docker network."
       docker network create conjur &> /dev/null
       echo "Starting container."
@@ -354,11 +354,11 @@ deploy_leader_container(){
       --publish "444:444" \
       --publish "5432:5432" \
       --publish "1999:1999" \
-      --volume configuration:/opt/cyberark/dap/configuration:Z \
-      --volume security:/opt/cyberark/dap/security:Z \
-      --volume backups:/opt/conjur/backup:Z \
-      --volume seeds:/opt/cyberark/dap/seeds:Z \
-      --volume logs:/var/log/conjur:Z \
+      --volume $config_dir/configuration:/opt/cyberark/dap/configuration:Z \
+      --volume $config_dir/security:/opt/cyberark/dap/security:Z \
+      --volume $config_dir/backup:/opt/conjur/backup:Z \
+      --volume $config_dir/seeds:/opt/cyberark/dap/seeds:Z \
+      --volume $config_dir/logs:/var/log/conjur:Z \
       $conjur_image)
       update_config 'leader_container_id' $leader_container_id
       echo "Leader/Standby Container deployed!"
@@ -388,10 +388,6 @@ configure_leader_container(){
       echo "Configuring Conjur Leader container using company name: $company_name"
       docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer --admin-password $admin_password $company_name
       echo "Checking to make sure container has come up successfully"
-      until $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
-      do
-        echo "."
-      done
       if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
       then
         echo "Conjur Leader successfully configured!!!"
