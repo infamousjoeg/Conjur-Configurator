@@ -2,7 +2,7 @@
 #Conjur POC Install - Master install and base policies 
 
 #variables
-config_dir="$HOME/.conjur"
+config_dir="$HOME/.config/cybr"
 config_filename="conjurinstaller.config"
 config_filepath="$config_dir/$config_filename"
 
