@@ -312,8 +312,8 @@ import_registry(){
   then
     echo "Found local cli file."
     tarname=$(find conjur-cli*)
-    conjur_image=$(docker load -i $tarname)
-    conjur_image=$(echo $cli_image | sed 's/Loaded image: //')
+    cli_image=$(docker load -i $tarname)
+    cli_image=$(echo $cli_image | sed 's/Loaded image: //')
     update_config 'cli_image' $cli_image
   else
     echo "Can't find local image in current directory."
