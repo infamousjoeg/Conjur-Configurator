@@ -221,7 +221,17 @@ docker_check(){
     else
       echo "Docker daemon appears to be running."
     fi
-    echo "All docker checks have passed."
+  echo "Checking if d_type true"
+    if ! docker system info | grep "Supports d_type: true" >/dev/null 2>&1; 
+    then
+      echo "Docker d_type isn't enabled."
+      echo "Returning to main menu."
+      press_enter;
+      function_menu;
+    else
+      echo "d_type is true for Docker."
+    fi
+  echo "All docker checks have passed."
 }
 
 
