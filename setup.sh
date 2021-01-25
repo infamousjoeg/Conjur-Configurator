@@ -39,10 +39,11 @@ function_menu(){
       echo "Welcome to the Conjur Standup Utility! (CSU)"
       echo "This program can help you configure many different types of Conjur instances."
       echo ""
-      echo "    	1  -  Deploy Conjur Leader/Standby container."
+      echo "    	1  -  Deploy Conjur instance container. (Leader/Standby/Follower)"
       echo "    	2  -  Configure Conjur container as Leader."
       echo "    	3  -  Configure POC Policies for Conjur."
-      echo "    	4  -  Remove Conjur containers and configuration files."
+      echo "    	4  -  Create seed package for Conjur Follower."
+      echo "    	9  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
@@ -52,7 +53,8 @@ function_menu(){
         1 ) clear ; create_config ; docker_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
         3 ) clear ; poc_configure_menu ; press_enter ;;
-        4 ) clear ; remove_container ; press_enter ;;
+        4 ) clear ; create_follower_seed ; press_enter ;;
+        9 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
       esac
@@ -135,6 +137,15 @@ config_check(){
     create_config
     function_menu
   fi
+}
+
+create_follower_seed(){
+  echo "Checking to see if Master is configured"
+  echo -n "Enter follower DNS name (or follower loadbalancer name): "
+  read follower_dns
+  docker exec $leader_container_id evoke seed follower $follower_dns > follower_seed.tar
+  echo "Seed file exported at $PWD/follower_seed.tar."
+  echo "Please transport that file over to the follower instance."
 }
 
 import_config(){
