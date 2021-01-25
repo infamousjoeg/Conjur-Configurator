@@ -461,7 +461,6 @@ poc_configure(){
     echo "Here are the users that were created:"
     echo $root_policy_output
     echo ""
-
     # set values for passwords in secrets policy
     echo "Creating dummy secret for ansible"
     docker exec $cli_container_id conjur variable values add apps/secrets/cd-variables/ansible_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
@@ -483,6 +482,13 @@ poc_configure(){
     docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/chef_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
     echo "Creating dummy secret for jenkins"
     docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+    echo ""
+    echo "Configuring k8s integration"
+    docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod &> /dev/null
+    docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
+    echo ""
+    echo "Setting log level to debug"
+    docker exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
   fi
 }
 
