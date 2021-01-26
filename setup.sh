@@ -470,8 +470,16 @@ poc_configure(){
     root_policy_output=$(docker exec $cli_container_id conjur policy load --replace root /policy/root.yml)
     echo "Loading app policy."
     app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
+    echo "Loading Conjur policy."
+    conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur /policy/conjur.yml)
+    echo "Loading IAM policy."
+    conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-iam/prod /policy/aws.yml)
+    echo "Loading Kubernetes policy."
+    kubernetes_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-k8s/prod /policy/kubernetes.yml)
+    echo "Loading Seed Generation policy."
+    seedgeneration_policy_output=$(docker exec $cli_container_id conjur policy load conjur/seed-generation /policy/seedgeneration.yml)
     echo "loading secrets policy."
-    secrets_policy_output=$(docker exec $cli_container_id conjur policy load apps/secrets /policy/secrets.yml)
+    secrets_policy_output=$(docker exec $cli_container_id conjur policy load secrets /policy/secrets.yml)
     echo "Here are the users that were created:"
     echo $root_policy_output
     echo ""
