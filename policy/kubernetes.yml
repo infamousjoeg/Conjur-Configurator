@@ -1,0 +1,32 @@
+- !webservice
+
+- !variable ca/key
+
+- !variable ca/cert
+
+- !policy
+  id: apps
+  body:
+  - !layer
+
+  - &authenticated-resources-k8s
+    - !host
+      id: conjur/service_account/conjur-cluster
+      annotations:
+        kubernetes/authentication-container-name: authenticator
+        kubernetes: "true"
+
+    - !host
+      id: demoapps/deployment/jenkins
+      annotations:
+        kubernetes/authentication-container-name: authenticator
+        kubernetes: "true"
+
+  - !grant
+    role: !layer
+    members: *authenticated-resources-k8s
+    
+- !permit
+  resource: !webservice
+  privilege: [ read, authenticate ]
+  role: !layer apps

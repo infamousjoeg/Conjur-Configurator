@@ -42,56 +42,7 @@
 
 - !policy
   id: conjur
-  body:
-    - !policy 
-      id: authn-k8s/prod
-      body:
-        - !webservice
-        
-        - !variable ca/key
-        
-        - !variable ca/cert
-
-        - !policy
-          id: apps
-          body:
-          - !layer
-
-          - &authenticated-resources-k8s
-            - !host
-              id: dap/service_account/conjur-cluster
-              annotations:
-                kubernetes/authentication-container-name: authenticator
-                kubernetes: "true"
-
-            - !host
-              id: demoapps/deployment/jenkins
-              annotations:
-                kubernetes/authentication-container-name: authenticator
-                kubernetes: "true"
-
-          - !grant
-            role: !layer
-            members: *authenticated-resources-k8s
-            
-        - !permit
-          resource: !webservice
-          privilege: [ read, authenticate ]
-          role: !layer apps
-
-    - !policy
-      id: seed-generation
-      body:
-      - !webservice
-      - !layer consumers
-      - !permit
-        role: !layer consumers
-        privilege: [ "execute" ]
-        resource: !webservice
-
-    - !grant
-      role: !layer seed-generation/consumers
-      member: !host /conjur/authn-k8s/prod/apps/dap/service_account/conjur-cluster
+  owner: !group admins
 
 - !host
   id: cf-service-broker
@@ -113,3 +64,7 @@
 - !policy
   id: pcf
   owner: !group cf-admin-group
+
+- !policy
+  id: secrets
+  owner: !group admins

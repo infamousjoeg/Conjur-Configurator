@@ -1,0 +1,8 @@
+- !policy
+  id: authn-iam/prod
+
+- !policy 
+  id: authn-k8s/prod
+
+- !policy
+  id: seed-generation

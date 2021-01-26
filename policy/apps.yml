@@ -3,6 +3,7 @@
   id: hosts
   body:
     - !host jenkins
+    - !host ansible
 
 - !policy
   id: ci
@@ -24,8 +25,9 @@
     - !host-factory
       layers: [ !layer ]
 
-- !policy
-  id: secrets
+    - !grant
+      role: !layer
+      member: !host /apps/hosts/ansible
 
 - !group ci
 
