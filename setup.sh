@@ -142,8 +142,9 @@ config_check(){
 create_follower_seed(){
   echo "Checking to see if Master is configured"
   echo -n "Enter follower DNS name (or follower loadbalancer name): "
-  read follower_dns
-  docker exec $leader_container_id evoke seed follower $follower_dns > follower_seed.tar
+  read fqdn_loadblancer_follower
+  update_config 'fqdn_loadblancer_follower' $fqdn_loadblancer_follower
+  docker exec $leader_container_id evoke seed follower $fqdn_loadblancer_follower > follower_seed.tar
   echo "Seed file exported at $PWD/follower_seed.tar."
   echo "Please transport that file over to the follower instance."
 }
@@ -173,7 +174,8 @@ delete_config(){
   echo "Removing in memory variables."
   conjur_image=
   cli_image=
-  fqdn_loadbalancer=
+  fqdn_loadbalancer_leader=
+  fqdn_loadblancer_follower=
   leader_container_id=
   cli_container_id=
   company_name=
@@ -190,7 +192,8 @@ create_config(){
     cat <<EOF > $config_filepath
 conjur_image=
 cli_image=
-fqdn_loadbalancer=
+fqdn_loadbalancer_leader=
+fqdn_loadblancer_follower=
 leader_container_id=
 cli_container_id=
 company_name=
@@ -349,24 +352,24 @@ deploy_leader_container(){
     echo "Starting configuration of the leader container."
     echo ""
     echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer (Name can not be \"localhost\" or \"conjur\" or container any spaces): "
-    read fqdn_loadbalancer
-    if [[ $fqdn_loadbalancer = *" "* ]] || [[ $fqdn_loadbalancer = localhost ]] || [[ $fqdn_loadbalancer = conjur ]]
+    read fqdn_loadbalancer_leader
+    if [[ $fqdn_loadbalancer_leader = *" "* ]] || [[ $fqdn_loadbalancer_leader = localhost ]] || [[ $fqdn_loadbalancer_leader = conjur ]]
     then
-      echo "Load balancer DNS name as "$fqdn_loadbalancer" is not supported."
+      echo "Load balancer DNS name as "$fqdn_loadbalancer_leader" is not supported."
       echo "The name can not:"
       echo " - Contain any spaces."
       echo " - Be \"localhost\""
       echo " - Be \"conjur\""
       deploy_leader_container
     else
-      update_config 'fqdn_loadbalancer' $fqdn_loadbalancer
+      update_config 'fqdn_loadbalancer_leader' $fqdn_loadbalancer_leader
       echo "Creating local folders."
       mkdir -p $config_dir/{security,configuration,backup,seeds,logs}
       echo "Creating Conjur Docker network."
       docker network create conjur &> /dev/null
       echo "Starting container."
       leader_container_id=$(docker container run \
-      --name $fqdn_loadbalancer \
+      --name $fqdn_loadbalancer_leader \
       --detach \
       --network conjur \
       --restart=unless-stopped \
@@ -407,7 +410,7 @@ configure_leader_container(){
     else
       update_config 'company_name' $company_name
       echo "Configuring Conjur Leader container using company name: $company_name"
-      docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer --admin-password $admin_password $company_name
+      docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer_leader --admin-password $admin_password $company_name
       echo "Checking to make sure container has come up successfully"
       if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
       then
@@ -458,7 +461,7 @@ poc_configure(){
     #Init conjur session from CLI container
 
     echo "Configuring CLI container to talk to leader."
-    docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer <<< yes &> /dev/null
+    docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer_leader <<< yes &> /dev/null
 
     #Login to conjur and load policy
     echo "Logging into leader as admin."
@@ -494,8 +497,8 @@ poc_configure(){
     echo "Creating dummy secret for jenkins"
     docker exec $cli_container_id conjur variable values add apps/secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
     echo ""
-    echo "Configuring k8s integration"
-    docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod &> /dev/null
+    echo "Configuring k8s integration and AWS authenticator"
+    docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod &> /dev/null
     docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
     echo ""
     echo "Setting log level to debug"
