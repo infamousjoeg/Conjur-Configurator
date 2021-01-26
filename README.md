@@ -49,7 +49,11 @@ The desired result of this option is to load in some basic conjur policies into 
 
 1. root
 2. apps
-3. apps/secrets
+3. conjur
+4. conjur/authn-iam/prod
+5. conjur/authn-k8s/prod
+6. conjur/seed-generation
+7. secrets
 
 All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container.
 
