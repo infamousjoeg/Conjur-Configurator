@@ -57,7 +57,7 @@ All of the policy files will are contained in the policy directory in this repo.
 This option will create a seed file for a follower. You will be prompted for the follwer's DNS name. This could be a loadblancer DNS name that sits in front of the follwer(s). Note that for loadbalancers we will have to set the trusted proxy address in Conjur. The loadbalancer will have to be configured with Forward-for so that Conjur can see the original IP of the incoming request if host/ip security is required. 
 
 ### Option 9
-This option will remove all containers stood up by this program. It will also show all of the configuration file settings before deleting the file. The folder containing the configuration file $HOME/.config/cybr/ is NOT deleted in case there are other entries. 
+This option will remove all containers stood up by this program. It will also show all of the configuration file settings before deleting the file. The folder containing the configuration (file $HOME/.config/cybr/) is NOT deleted in case there are other entries. 
 
 ## Local Files
 All local files are saved to a hidden directory in the user's home folder called '.config/cybr'. This is where the configuration file is stored as well as the volume mounts for the Conjur leader container. Here is a break down of the folders and files that are created:
@@ -70,3 +70,28 @@ All local files are saved to a hidden directory in the user's home folder called
 | backup | Allows backups to be available on the host server |
 | seeds | Simplifies transferring seed files into the DAP container |
 | logs | Provides direct access to the DAP logs locally |
+
+## Explanation of Policy files
+The policy files bundled with this program are meant to be a reference for your expansion. They are not a definitive framework for how you should structure your policies. The emphasis has been placed on ease of reading and following the flow of the files. 
+
+### root.yml
+This is your main policy which all of your other policies are held. It defines a few users and a few groups. It also shows how to add users to the groups. 
+
+### apps.yml
+This policy is a sub policy off of root. We have 2 hosts defined in it's own 'hosts' policy. This was done as a grouping mechanism to have a single spot for your hosts. We then create a 'CI' and 'CD' policy with some layers. We then add the appropriate host to the correct layer based on their role. Ansible == CD and Jenkins == CI. 
+
+### conjur.yml
+This policy controls all of the special integrations that are available to Conjur. These policies include AWS, Kubernetes, and Seed Generator authenticators. 
+
+#### aws.yml
+This is the main AWS policy that contains a placeholder for AWS apps. 
+
+#### kubernetes.yml
+This is the main kubernetes policy that containers placeholders for k8s applications. The CA is already initialized if you ran option 3 in the main menu.
+
+#### seedgeneration.yml
+This controls the automatic seed generator. Primarily used for deployment of followers in k8s in an automatic way. 
+
+#### secrets.yml
+This contains some generic secrets taht will be populated with dummy data. All of the hosts created will have permissions to these secrets. 
+
