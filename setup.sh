@@ -480,8 +480,12 @@ poc_configure(){
     seedgeneration_policy_output=$(docker exec $cli_container_id conjur policy load conjur/seed-generation /policy/seedgeneration.yml)
     echo "loading secrets policy."
     secrets_policy_output=$(docker exec $cli_container_id conjur policy load secrets /policy/secrets.yml)
+    echo ""
     echo "Here are the users that were created:"
     echo $root_policy_output
+    echo ""
+    echo "Here are the users create for CI/CD apps:"
+    echo $app_policy_output
     echo ""
     # set values for passwords in secrets policy
     echo "Creating dummy secret for ansible"
