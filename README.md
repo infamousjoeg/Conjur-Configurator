@@ -97,8 +97,8 @@ This is the main kubernetes policy that containers placeholders for k8s applicat
 #### seedgeneration.yml
 This controls the automatic seed generator. Primarily used for deployment of followers in k8s in an automatic way. 
 
-#### secrets.yml
-This contains some generic secrets taht will be populated with dummy data. All of the hosts created will have permissions to these secrets. 
-
 #### tanzu.yml
 This policy creates a framework to work with VMWare Tanzu. The policy for the Tanzu is 'tanzu/production'. This is what the serice broker should be configured to control. There is a host created called 'host/tanzu/tanzu-service-broker' and has ownership of the 'tanzu/production' policy. 
+
+#### secrets.yml
+This contains some generic secrets taht will be populated with dummy data. All of the hosts created will have permissions to these secrets. 
