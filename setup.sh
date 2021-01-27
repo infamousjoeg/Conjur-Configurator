@@ -478,6 +478,8 @@ poc_configure(){
     kubernetes_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-k8s/prod /policy/kubernetes.yml)
     echo "Loading Seed Generation policy."
     seedgeneration_policy_output=$(docker exec $cli_container_id conjur policy load conjur/seed-generation /policy/seedgeneration.yml)
+    echo "Loading Tanzu policy."
+    tanzu_policy_output=$(docker exec $cli_container_id conjur policy load tanzu /policy/tanzu.yml)
     echo "loading secrets policy."
     secrets_policy_output=$(docker exec $cli_container_id conjur policy load secrets /policy/secrets.yml)
     echo ""
@@ -486,6 +488,9 @@ poc_configure(){
     echo ""
     echo "Here are the hosts created for CI/CD apps:"
     echo $app_policy_output
+    echo ""
+    echo "Here are the hosts created for Tanzu apps:"
+    echo $tanzu_policy_output
     echo ""
     # set values for passwords in secrets policy
     echo "Creating dummy secret for ansible"
@@ -508,6 +513,10 @@ poc_configure(){
     docker exec $cli_container_id conjur variable values add secrets/ci-variables/chef_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
     echo "Creating dummy secret for jenkins"
     docker exec $cli_container_id conjur variable values add secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+    echo ""
+    echo "Exporting certificate to use for applications."
+    docker cp $cli_container_id:/root/conjur-$company_name.pem .
+    echo "Certificate has been exported to $PWD/conjur-$company_name.pem"
     echo ""
     echo "Configuring k8s integration and AWS authenticator"
     docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod &> /dev/null
