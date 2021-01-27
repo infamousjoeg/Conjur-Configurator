@@ -1,0 +1,35 @@
+- !host
+  id: tanzu-service-broker
+  annotations:
+    platform: cloudfoundry
+
+- !permit
+  role: !host tanzu-service-broker
+  privilege: read
+  resource: !host tanzu-service-broker
+
+- !group
+  id: tanzu-admin-group
+
+- !grant
+  role: !group tanzu-admin-group
+  member: !host tanzu-service-broker
+
+- !policy
+  id: production
+  owner: !group tanzu-admin-group
+  # body:
+  # - !policy
+  #   id: <<<ORG_GUID>>
+  #   body:
+  #     - !layer
+
+  # - !policy
+  #   id: <<SPACE_GUID>>
+  #   body:
+  #     - !layer
+
+  # - !policy
+  #   id: <<APP_GUID>>
+  #   body:
+  #     - !layer
