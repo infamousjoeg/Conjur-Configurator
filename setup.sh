@@ -41,8 +41,9 @@ function_menu(){
       echo ""
       echo "    	1  -  Deploy Conjur instance container. (Leader/Standby/Follower)"
       echo "    	2  -  Configure Conjur container as Leader."
-      echo "    	3  -  Configure POC Policies for Conjur."
-      echo "    	4  -  Create seed package for Conjur Follower."
+      echo "    	3  -  Deploy and configure Conjur CLI container."
+      echo "    	4  -  Configure POC Policies for Conjur."
+      echo "    	5  -  Create seed package for Conjur Follower."
       echo "    	9  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
@@ -52,8 +53,9 @@ function_menu(){
       case $selection in
         1 ) clear ; create_config ; docker_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
-        3 ) clear ; poc_configure_menu ; press_enter ;;
-        4 ) clear ; create_follower_seed ; press_enter ;;
+        3 ) clear ; cli_configure_menu ; press_enter ;;
+        4 ) clear ; policy_load ; press_enter ;;
+        5 ) clear ; create_follower_seed ; press_enter ;;
         9 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
@@ -89,7 +91,7 @@ deploy_leader_container_menu(){
     done
 }
 
-poc_configure_menu(){
+cli_configure_menu(){
     until [ "$selection" = "0" ]; do
       clear;
       echo "Deploy Conjur CLI container."
@@ -106,10 +108,10 @@ poc_configure_menu(){
       read selection
       echo ""
       case $selection in
-        1 ) clear ; pull_dockerhub "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
-        2 ) clear ; private_registry "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
-        3 ) clear ; local_registry "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
-        4 ) clear ; import_registry "cli" ; press_enter ; poc_configure ; press_enter ; function_menu ;;
+        1 ) clear ; pull_dockerhub "cli" ; press_enter ; cli_configure ; press_enter ; function_menu ;;
+        2 ) clear ; private_registry "cli" ; press_enter ; cli_configure ; press_enter ; function_menu ;;
+        3 ) clear ; local_registry "cli" ; press_enter ; cli_configure ; press_enter ; function_menu ;;
+        4 ) clear ; import_registry "cli" ; press_enter ; cli_configure ; press_enter ; function_menu ;;
         5 ) clear ; function_menu ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
@@ -447,8 +449,7 @@ remove_container(){
   delete_config
 }
 
-poc_configure(){
-#create CLI container
+cli_configure(){
   if [ -z $admin_password ]
   then
     echo -n "Enter your admin password: "
@@ -463,76 +464,78 @@ poc_configure(){
 
     echo "Configuring CLI container to talk to leader."
     docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer_leader <<< yes &> /dev/null
-
-    #Login to conjur and load policy
     echo "Logging into leader as admin."
     docker exec $cli_container_id conjur authn login -u admin -p $admin_password
-    echo "Loading root policy."
-    root_policy_output=$(docker exec $cli_container_id conjur policy load --replace root /policy/root.yml)
-    echo "Loading app policy."
-    app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
-    echo "Loading Conjur policy."
-    conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur /policy/conjur.yml)
-    echo "Loading IAM policy."
-    conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-iam/prod /policy/aws.yml)
-    echo "Loading Kubernetes policy."
-    kubernetes_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-k8s/prod /policy/kubernetes.yml)
-    echo "Loading Seed Generation policy."
-    seedgeneration_policy_output=$(docker exec $cli_container_id conjur policy load conjur/seed-generation /policy/seedgeneration.yml)
-    echo "Loading Tanzu policy."
-    tanzu_policy_output=$(docker exec $cli_container_id conjur policy load tanzu /policy/tanzu.yml)
-    echo "Loading Azure policy."
-    azure_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-azure/prod /policy/azure.yml)
-    echo "loading secrets policy."
-    secrets_policy_output=$(docker exec $cli_container_id conjur policy load secrets /policy/secrets.yml)
-    echo ""
-    echo "Here are the users that were created:"
-    echo $root_policy_output
-    echo ""
-    echo "Here are the hosts created for CI/CD apps:"
-    echo $app_policy_output
-    echo ""
-    echo "Here are the hosts created for Tanzu apps:"
-    echo $tanzu_policy_output
-    echo ""
-    echo "Here are the hosts created for Azure apps:"
-    echo $azure_policy_output
-    echo ""
-    # set values for passwords in secrets policy
-    echo "Creating dummy secret for ansible"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/ansible_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for electric flow"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/electric_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for openshift"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/openshift_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for docker"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/docker_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for aws"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/aws_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for azure"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/azure_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for kubernetes"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/kubernetes_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for terraform"
-    docker exec $cli_container_id conjur variable values add secrets/cd-variables/terraform_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for puppet"
-    docker exec $cli_container_id conjur variable values add secrets/ci-variables/puppet_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for chef"
-    docker exec $cli_container_id conjur variable values add secrets/ci-variables/chef_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo "Creating dummy secret for jenkins"
-    docker exec $cli_container_id conjur variable values add secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-    echo ""
-    echo "Exporting certificate to use for applications."
-    docker cp $cli_container_id:/root/conjur-$company_name.pem .
-    echo "Certificate has been exported to $PWD/conjur-$company_name.pem"
-    echo ""
-    echo "Configuring k8s integration, AWS authenticator, and Azure authenticator."
-    docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod &> /dev/null
-    docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
-    echo ""
-    echo "Setting log level to debug"
-    docker exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
   fi
+}
+
+policy_load(){
+  # load policy
+  echo "Loading root policy."
+  root_policy_output=$(docker exec $cli_container_id conjur policy load --replace root /policy/root.yml)
+  echo "Loading app policy."
+  app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
+  echo "Loading Conjur policy."
+  conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur /policy/conjur.yml)
+  echo "Loading IAM policy."
+  conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-iam/prod /policy/aws.yml)
+  echo "Loading Kubernetes policy."
+  kubernetes_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-k8s/prod /policy/kubernetes.yml)
+  echo "Loading Seed Generation policy."
+  seedgeneration_policy_output=$(docker exec $cli_container_id conjur policy load conjur/seed-generation /policy/seedgeneration.yml)
+  echo "Loading Tanzu policy."
+  tanzu_policy_output=$(docker exec $cli_container_id conjur policy load tanzu /policy/tanzu.yml)
+  echo "Loading Azure policy."
+  azure_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-azure/prod /policy/azure.yml)
+  echo "loading secrets policy."
+  secrets_policy_output=$(docker exec $cli_container_id conjur policy load secrets /policy/secrets.yml)
+  echo ""
+  echo "Here are the users that were created:"
+  echo $root_policy_output
+  echo ""
+  echo "Here are the hosts created for CI/CD apps:"
+  echo $app_policy_output
+  echo ""
+  echo "Here are the hosts created for Tanzu apps:"
+  echo $tanzu_policy_output
+  echo ""
+  echo "Here are the hosts created for Azure apps:"
+  echo $azure_policy_output
+  echo ""
+  # set values for passwords in secrets policy
+  echo "Creating dummy secret for ansible"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/ansible_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for electric flow"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/electric_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for openshift"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/openshift_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for docker"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/docker_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for aws"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/aws_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for azure"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/azure_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for kubernetes"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/kubernetes_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for terraform"
+  docker exec $cli_container_id conjur variable values add secrets/cd-variables/terraform_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for puppet"
+  docker exec $cli_container_id conjur variable values add secrets/ci-variables/puppet_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for chef"
+  docker exec $cli_container_id conjur variable values add secrets/ci-variables/chef_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo "Creating dummy secret for jenkins"
+  docker exec $cli_container_id conjur variable values add secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+  echo ""
+  echo "Exporting certificate to use for applications."
+  docker cp $cli_container_id:/root/conjur-$company_name.pem .
+  echo "Certificate has been exported to $PWD/conjur-$company_name.pem"
+  echo ""
+  echo "Configuring k8s integration, AWS authenticator, and Azure authenticator."
+  docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod &> /dev/null
+  docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
+  echo ""
+  echo "Setting log level to debug"
+  docker exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
 }
 
 config_check
