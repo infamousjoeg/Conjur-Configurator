@@ -54,8 +54,9 @@ The desired result of this option is to load in some basic conjur policies into 
 4. conjur/authn-iam/prod
 5. conjur/authn-k8s/prod
 6. conjur/seed-generation
-7. tanzu
-8. secrets
+7. conjur/authn-azure/prod
+8. tanzu
+9. secrets
 
 All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container.
 
@@ -96,7 +97,10 @@ This is the main AWS policy that contains a placeholder for AWS apps.
 This is the main kubernetes policy that containers placeholders for k8s applications. The CA is already initialized if you ran option 3 in the main menu.
 
 #### seedgeneration.yml (sub policy in Conjur policy)
-This controls the automatic seed generator. Primarily used for deployment of followers in k8s in an automatic way. 
+This controls the automatic seed generator. Primarily used for deployment of followers in k8s in an automatic way.
+
+#### azure.yml (sub policy in Conjur policy)
+This policy controls the authn-azure webservice and the hosts for azure. These hosts have already been granted permission to access the dummy secrets. 
 
 ### tanzu.yml
 This policy creates a framework to work with VMWare Tanzu. The policy for the Tanzu is 'tanzu/production'. This is what the serice broker should be configured to control. There is a host created called 'host/tanzu/tanzu-service-broker' and has ownership of the 'tanzu/production' policy. 
