@@ -455,7 +455,7 @@ cli_configure(){
     echo -n "Enter your admin password: "
     read -s admin_password
     echo ""
-    poc_configure;
+    cli_configure;
   else
     echo "Standing up the CLI container."
     cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
