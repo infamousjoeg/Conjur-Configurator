@@ -49,7 +49,7 @@ The desired result of this option is to configure an already started conjur mast
 This option will launch and configure a conjur cli container. This is required before performing option 4. 
 
 ### Option 4
-The desired result of this option is to load in some basic conjur policies into a conjur environment. Note that the root policy is being loaded with the "--replace" flag which will overwrite any current root policy. The basic policies loaded are:
+The desired result of this option is to load in some basic conjur policies into a conjur environment. The basic policies loaded are:
 
 1. root
 2. apps
