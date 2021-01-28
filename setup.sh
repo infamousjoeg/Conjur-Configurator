@@ -409,6 +409,7 @@ configure_leader_container(){
       configure_leader_container
     else
       update_config 'company_name' $company_name
+      echo ""
       echo "Configuring Conjur Leader container using company name: $company_name"
       docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer_leader --admin-password $admin_password $company_name
       echo "Checking to make sure container has come up successfully"
@@ -480,6 +481,8 @@ poc_configure(){
     seedgeneration_policy_output=$(docker exec $cli_container_id conjur policy load conjur/seed-generation /policy/seedgeneration.yml)
     echo "Loading Tanzu policy."
     tanzu_policy_output=$(docker exec $cli_container_id conjur policy load tanzu /policy/tanzu.yml)
+    echo "Loading Azure policy."
+    azure_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-azure/prod /policy/azure.yml)
     echo "loading secrets policy."
     secrets_policy_output=$(docker exec $cli_container_id conjur policy load secrets /policy/secrets.yml)
     echo ""
@@ -491,6 +494,9 @@ poc_configure(){
     echo ""
     echo "Here are the hosts created for Tanzu apps:"
     echo $tanzu_policy_output
+    echo ""
+    echo "Here are the hosts created for Azure apps:"
+    echo $azure_policy_output
     echo ""
     # set values for passwords in secrets policy
     echo "Creating dummy secret for ansible"
@@ -518,8 +524,8 @@ poc_configure(){
     docker cp $cli_container_id:/root/conjur-$company_name.pem .
     echo "Certificate has been exported to $PWD/conjur-$company_name.pem"
     echo ""
-    echo "Configuring k8s integration and AWS authenticator"
-    docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod &> /dev/null
+    echo "Configuring k8s integration, AWS authenticator, and Azure authenticator."
+    docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod &> /dev/null
     docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
     echo ""
     echo "Setting log level to debug"
