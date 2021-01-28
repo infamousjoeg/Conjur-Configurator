@@ -151,7 +151,7 @@ create_follower_seed(){
 
 import_config(){
   local count=$(wc -l < $config_filepath)
-  if [ $count -eq 6 ]
+  if [ $count -eq 7 ]
   then
     echo "Configuration file is correct!"
     echo "||||||||||||||||||||||||||||||"
