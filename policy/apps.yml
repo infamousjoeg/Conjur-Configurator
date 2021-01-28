@@ -4,6 +4,7 @@
   body:
     - !host jenkins
     - !host ansible
+    - !host terraform
 
 - !policy
   id: ci
@@ -28,6 +29,10 @@
     - !grant
       role: !layer
       member: !host /apps/hosts/ansible
+
+    - !grant
+      role: !layer
+      member: !host /apps/hosts/terraform
 
 - !group ci
 

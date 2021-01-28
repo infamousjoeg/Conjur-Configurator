@@ -513,6 +513,8 @@ poc_configure(){
     docker exec $cli_container_id conjur variable values add secrets/cd-variables/azure_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
     echo "Creating dummy secret for kubernetes"
     docker exec $cli_container_id conjur variable values add secrets/cd-variables/kubernetes_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
+    echo "Creating dummy secret for terraform"
+    docker exec $cli_container_id conjur variable values add secrets/cd-variables/terraform_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
     echo "Creating dummy secret for puppet"
     docker exec $cli_container_id conjur variable values add secrets/ci-variables/puppet_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
     echo "Creating dummy secret for chef"
