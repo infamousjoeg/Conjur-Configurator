@@ -89,17 +89,17 @@ This policy is a sub policy off of root. We have 2 hosts defined in it's own 'ho
 ### conjur.yml
 This policy controls all of the special integrations that are available to Conjur. These policies include AWS, Kubernetes, and Seed Generator authenticators. 
 
-#### aws.yml
+#### aws.yml (sub policy in Conjur policy)
 This is the main AWS policy that contains a placeholder for AWS apps. 
 
-#### kubernetes.yml
+#### kubernetes.yml (sub policy in Conjur policy)
 This is the main kubernetes policy that containers placeholders for k8s applications. The CA is already initialized if you ran option 3 in the main menu.
 
-#### seedgeneration.yml
+#### seedgeneration.yml (sub policy in Conjur policy)
 This controls the automatic seed generator. Primarily used for deployment of followers in k8s in an automatic way. 
 
-#### tanzu.yml
+### tanzu.yml
 This policy creates a framework to work with VMWare Tanzu. The policy for the Tanzu is 'tanzu/production'. This is what the serice broker should be configured to control. There is a host created called 'host/tanzu/tanzu-service-broker' and has ownership of the 'tanzu/production' policy. 
 
-#### secrets.yml
+### secrets.yml
 This contains some generic secrets taht will be populated with dummy data. All of the hosts created will have permissions to these secrets. 
