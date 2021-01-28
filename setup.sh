@@ -305,7 +305,7 @@ private_registry(){
 local_registry(){
   echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
   read image
-  if [ docker images --filter "reference=$image" = ""]
+  if [ "$(docker images --filter "reference=$image")" = "" ]
   then
     echo "Could not find image in local registry."
     echo "Returning to previous menu."
