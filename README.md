@@ -28,7 +28,7 @@ This script is intended to install CyberArk Conjur Enterprise Secrets Manager th
 ## Explanation of options
 
 ### Option 1
-The desried result of this option is to start a Master/Standby container with all of the appropriate docker container options. The options that it enables are as follows:
+The desired result of this option is to start a Master/Standby container with all of the appropriate docker container options. The options that it enables are as follows:
 #### Volumes
 1. Security
 2. Configuration
