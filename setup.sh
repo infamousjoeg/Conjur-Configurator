@@ -472,7 +472,7 @@ cli_configure(){
 policy_load(){
   # load policy
   echo "Loading root policy."
-  root_policy_output=$(docker exec $cli_container_id conjur policy load --replace root /policy/root.yml)
+  root_policy_output=$(docker exec $cli_container_id conjur policy load root /policy/root.yml)
   echo "Loading app policy."
   app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
   echo "Loading Conjur policy."
