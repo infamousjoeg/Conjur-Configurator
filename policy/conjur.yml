@@ -6,3 +6,6 @@
 
 - !policy
   id: seed-generation
+
+- !policy
+  id: authn-azure/prod
