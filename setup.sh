@@ -54,7 +54,7 @@ function_menu(){
         1 ) clear ; create_config ; docker_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
         3 ) clear ; cli_configure_menu ; press_enter ;;
-        4 ) clear ; policy_load ; press_enter ;;
+        4 ) clear ; policy_load_rest ; policy_load ; press_enter ;;
         5 ) clear ; create_follower_seed ; press_enter ;;
         9 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
@@ -470,38 +470,6 @@ cli_configure(){
 }
 
 policy_load(){
-  # load policy
-  echo "Loading root policy."
-  root_policy_output=$(docker exec $cli_container_id conjur policy load root /policy/root.yml)
-  echo "Loading app policy."
-  app_policy_output=$(docker exec $cli_container_id conjur policy load apps /policy/apps.yml)
-  echo "Loading Conjur policy."
-  conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur /policy/conjur.yml)
-  echo "Loading IAM policy."
-  conjur_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-iam/prod /policy/aws.yml)
-  echo "Loading Kubernetes policy."
-  kubernetes_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-k8s/prod /policy/kubernetes.yml)
-  echo "Loading Seed Generation policy."
-  seedgeneration_policy_output=$(docker exec $cli_container_id conjur policy load conjur/seed-generation /policy/seedgeneration.yml)
-  echo "Loading Tanzu policy."
-  tanzu_policy_output=$(docker exec $cli_container_id conjur policy load tanzu /policy/tanzu.yml)
-  echo "Loading Azure policy."
-  azure_policy_output=$(docker exec $cli_container_id conjur policy load conjur/authn-azure/prod /policy/azure.yml)
-  echo "loading secrets policy."
-  secrets_policy_output=$(docker exec $cli_container_id conjur policy load secrets /policy/secrets.yml)
-  echo ""
-  echo "Here are the users that were created:"
-  echo $root_policy_output
-  echo ""
-  echo "Here are the hosts created for CI/CD apps:"
-  echo $app_policy_output
-  echo ""
-  echo "Here are the hosts created for Tanzu apps:"
-  echo $tanzu_policy_output
-  echo ""
-  echo "Here are the hosts created for Azure apps:"
-  echo $azure_policy_output
-  echo ""
   # set values for passwords in secrets policy
   echo "Creating dummy secret for ansible"
   docker exec $cli_container_id conjur variable values add secrets/cd-variables/ansible_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
@@ -536,6 +504,52 @@ policy_load(){
   echo ""
   echo "Setting log level to debug"
   docker exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
+}
+
+policy_load_rest(){
+  if [ -z $admin_password ]
+  then
+    echo -n "Enter your admin password: "
+    read -s admin_password
+    echo ""
+    policy_load_rest;
+  else
+    echo "Getting API KEY"
+    api_key=$(curl -k -s -X GET -u admin:$admin_password https://$fqdn_loadbalancer_leader/authn/$company_name/login)
+    echo "Getting Auth token"
+    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://$fqdn_loadbalancer_leader/authn/$company_name/admin/authenticate)
+    echo "Loading root policy."
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/root)
+    echo "Loading app policy."
+    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/apps)
+    echo "Loading Conjur policy."
+    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/conjur.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur)
+    echo "Loading IAM policy."
+    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-iam/prod)
+    echo "Loading Kubernetes policy."
+    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-k8s/prod)
+    echo "Loading Seed Generation policy."
+    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/seedgeneration)
+    echo "Loading Tanzu policy."
+    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/tanzu)
+    echo "Loading Azure policy."
+    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-azure/prod)
+    echo "loading secrets policy."
+    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/secrets)
+    echo ""
+    echo "Here are the users that were created:"
+    echo $root_policy_output
+    echo ""
+    echo "Here are the hosts created for CI/CD apps:"
+    echo $app_policy_output
+    echo ""
+    echo "Here are the hosts created for Tanzu apps:"
+    echo $tanzu_policy_output
+    echo ""
+    echo "Here are the hosts created for Azure apps:"
+    echo $azure_policy_output
+    echo ""
+  fi
 }
 
 config_check
