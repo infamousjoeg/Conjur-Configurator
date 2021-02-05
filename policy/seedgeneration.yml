@@ -7,4 +7,4 @@
 
 - !grant
   role: !layer consumers
-  member: !host /conjur/authn-k8s/prod/apps/conjur/service_account/conjur-cluster
+  member: !layer /conjur/authn-k8s/prod/auto-configuration
