@@ -54,7 +54,7 @@ function_menu(){
         1 ) clear ; create_config ; docker_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; configure_leader_container ; press_enter ;;
         3 ) clear ; cli_configure_menu ; press_enter ;;
-        4 ) clear ; policy_load_rest ; policy_load ; press_enter ;;
+        4 ) clear ; policy_load_rest ; press_enter ;;
         5 ) clear ; create_follower_seed ; press_enter ;;
         9 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
@@ -417,6 +417,19 @@ configure_leader_container(){
       echo "Checking to make sure container has come up successfully"
       if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
       then
+        echo ""
+        echo "Exporting certificate to current directory"
+        docker cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader.pem .
+        mv $fqdn_loadbalancer_leader.pem conjur-$company_name.pem
+        echo "Exported certificate to $PWD/conjur-$company_name.pem"
+        echo ""
+        echo "Configuring k8s integration, AWS authenticator, and Azure authenticator."
+        docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod &> /dev/null
+        docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
+        echo ""
+        echo "Setting log level to debug"
+        docker exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
+        echo ""
         echo "Conjur Leader successfully configured!!!"
         echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
         echo "Admin Password is: $admin_password"
@@ -469,43 +482,6 @@ cli_configure(){
   fi
 }
 
-policy_load(){
-  # set values for passwords in secrets policy
-  echo "Creating dummy secret for ansible"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/ansible_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for electric flow"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/electric_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for openshift"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/openshift_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for docker"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/docker_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for aws"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/aws_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for azure"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/azure_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for kubernetes"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/kubernetes_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for terraform"
-  docker exec $cli_container_id conjur variable values add secrets/cd-variables/terraform_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for puppet"
-  docker exec $cli_container_id conjur variable values add secrets/ci-variables/puppet_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for chef"
-  docker exec $cli_container_id conjur variable values add secrets/ci-variables/chef_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo "Creating dummy secret for jenkins"
-  docker exec $cli_container_id conjur variable values add secrets/ci-variables/jenkins_secret $(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32) &> /dev/null
-  echo ""
-  echo "Exporting certificate to use for applications."
-  docker cp $cli_container_id:/root/conjur-$company_name.pem .
-  echo "Certificate has been exported to $PWD/conjur-$company_name.pem"
-  echo ""
-  echo "Configuring k8s integration, AWS authenticator, and Azure authenticator."
-  docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod &> /dev/null
-  docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
-  echo ""
-  echo "Setting log level to debug"
-  docker exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
-}
-
 policy_load_rest(){
   if [ -z $admin_password ]
   then
@@ -548,6 +524,29 @@ policy_load_rest(){
     echo ""
     echo "Here are the hosts created for Azure apps:"
     echo $azure_policy_output
+    echo ""
+    echo "Creating dummy secret for ansible"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
+    echo "Creating dummy secret for electric flow"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/electric_secret
+    echo "Creating dummy secret for openshift"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
+    echo "Creating dummy secret for docker"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/docker_secret
+    echo "Creating dummy secret for aws"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/aws_secret
+    echo "Creating dummy secret for azure"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/azure_secret
+    echo "Creating dummy secret for kubernetes"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
+    echo "Creating dummy secret for terraform"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
+    echo "Creating dummy secret for puppet"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
+    echo "Creating dummy secret for chef"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/ci-variables/chef_secret
+    echo "Creating dummy secret for jenkins"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
     echo ""
   fi
 }
