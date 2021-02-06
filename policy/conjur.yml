@@ -5,6 +5,9 @@
   id: authn-k8s/prod
 
 - !policy
+  id: authn-oidc/provider
+
+- !policy
   id: seed-generation
 
 - !policy
