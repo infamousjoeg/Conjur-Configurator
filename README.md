@@ -15,9 +15,10 @@ This script is intended to install CyberArk Conjur Enterprise Secrets Manager th
 3. run ./setup.sh
 4. Select option 1 to deploy a leader/standby container. 
 5. Select option 2 to configure the container. This will configure the container deployed with option 1 as a leader. An admin password will be randomly generated. SAVE THE PASSWORD!
-6. (Optional) Select option 3 to deploy the conjur cli container.
-7. (Optional) Select option 4 to load a st of policies and enable authenticators.
+6. (Optional) Select option 3 to deploy the conjur cli container. The container will have the /policy folder mounted to /policy inside of the container.
+7. (Optional) Select option 4 to load a st of policies via rest.
 8. (Optional) Select option 5 to create a seed file for configuring a follower. 
+9. Select option 9 to remove all containers and configuration file.
 
 ## Tested Operating Systems
 
@@ -44,7 +45,7 @@ The desired result of this option is to start a Master/Standby container with al
 4. 1999 - Used for streaming audit log information from follower instances.
 
 ### Option 2
-The desired result of this option is to configure an already started conjur master/standby container as a master. The container from option 1 will be made into a conjur leader. There is a prompt for the loadbalancer DNS. This program will use this name for BOTH the hostname of the conjur leader instance as well as the container name. Avoid using names that are not supported by DNS and the word 'conjur'(conjur is a reserved name within the leader container). Also stay away from using 'localhost' as this will cause issues with networking.
+The desired result of this option is to configure an already started conjur master/standby/follower container as a master. The container from option 1 will be made into a conjur leader. There is a prompt for the loadbalancer DNS. This program will use this name for BOTH the hostname of the conjur leader instance as well as the container name. Avoid using names that are not supported by DNS and the word 'conjur'(conjur is a reserved name within the leader container). Also stay away from using 'localhost' as this will cause issues with networking. There will also be configured authenticators based on the policies loaded with option 4. Logging level will be configured to debug to aid in troubleshooting if needed. The self-signed certificate and CA will also be exported to the current directory so that you can distribute to your apps. 
 
 ### Option 3
 This option will launch and configure a conjur cli container. This is required before performing option 4. 
@@ -59,8 +60,9 @@ The desired result of this option is to load in some basic conjur policies into 
 5. conjur/authn-k8s/prod
 6. conjur/seed-generation
 7. conjur/authn-azure/prod
-8. tanzu
-9. secrets
+8. conjur/authn-oidc/provider
+9. tanzu
+10. secrets
 
 All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. This option can be use to reload policies after changes. 
 
