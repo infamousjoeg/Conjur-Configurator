@@ -108,6 +108,9 @@ This controls the automatic seed generator. Primarily used for deployment of fol
 #### azure.yml (sub policy in Conjur policy)
 This policy controls the authn-azure webservice and the hosts for azure. These hosts have already been granted permission to access the dummy secrets. 
 
+#### oidc_provider.yml (sub policy in Conjur policy)
+This policy controls the authn-OIDC/provider webservice. This is just a generic policy with "provider" as the OIDC provider. The admins group users have access to authenticate to the OIDC provider. The variables in the policy still need to be configured for your specific provider. See the Conjur documentation for further information.  
+
 ### tanzu.yml
 This policy creates a framework to work with VMWare Tanzu. The policy for the Tanzu is 'tanzu/production'. This is what the serice broker should be configured to control. There is a host created called 'host/tanzu/tanzu-service-broker' and has ownership of the 'tanzu/production' policy. 
 
