@@ -423,8 +423,8 @@ configure_leader_container(){
         mv $fqdn_loadbalancer_leader.pem conjur-$company_name.pem
         echo "Exported certificate to $PWD/conjur-$company_name.pem"
         echo ""
-        echo "Configuring k8s integration, AWS authenticator, and Azure authenticator."
-        docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod &> /dev/null
+        echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, and Azure authenticator."
+        docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider &> /dev/null
         docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
         echo ""
         echo "Setting log level to debug"
@@ -504,6 +504,8 @@ policy_load_rest(){
     conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-iam/prod)
     echo "Loading Kubernetes policy."
     kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-k8s/prod)
+    echo "Loading OIDC policy."
+    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-oidc/provider)
     echo "Loading Seed Generation policy."
     seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/seedgeneration)
     echo "Loading Tanzu policy."
