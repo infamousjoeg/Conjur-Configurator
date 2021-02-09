@@ -507,7 +507,7 @@ policy_load_rest(){
     echo "Loading OIDC policy."
     kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-oidc/provider)
     echo "Loading Seed Generation policy."
-    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/seedgeneration)
+    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/seed-generation)
     echo "Loading Tanzu policy."
     tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/tanzu)
     echo "Loading Azure policy."
