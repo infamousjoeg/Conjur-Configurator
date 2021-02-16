@@ -67,7 +67,10 @@ The desired result of this option is to load in some basic conjur policies into 
 All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. This option can be use to reload policies after changes. 
 
 ### Option 5
-This option will create a seed file for a follower. You will be prompted for the follwer's DNS name. This could be a loadblancer DNS name that sits in front of the follwer(s). Note that for loadbalancers we will have to set the trusted proxy address in Conjur. The loadbalancer will have to be configured with Forward-for so that Conjur can see the original IP of the incoming request if host/ip security is required. 
+This option will create a seed file for a follower. You will be prompted for the follwer's DNS name. This could be a loadblancer DNS name that sits in front of the follwer(s). Note that for loadbalancers we will have to set the trusted proxy address in Conjur. The loadbalancer will have to be configured with Forward-for so that Conjur can see the original IP of the incoming request if host/ip security is required. The seed file is outputted to the current directory named 'follower_seed.tar'.
+
+### Option 6
+This option will create a seed file for a standby. You will be prompted for the standby's DNS name. The seed file is outputted to the current directory named 'standby_seed.tar'.
 
 ### Option 9
 This option will remove all containers stood up by this program. It will also show all of the configuration file settings before deleting the file. The folder containing the configuration (file $HOME/.config/cybr/) is NOT deleted in case there are other entries. The mounted folders to the container image is also retained in case there are files you'd like to review. 
