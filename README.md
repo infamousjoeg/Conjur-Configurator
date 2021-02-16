@@ -48,7 +48,7 @@ The desired result of this option is to start a Master/Standby container with al
 The desired result of this option is to configure an already started conjur master/standby/follower container as a master. The container from option 1 will be made into a conjur leader. There is a prompt for the loadbalancer DNS. This program will use this name for BOTH the hostname of the conjur leader instance as well as the container name. Avoid using names that are not supported by DNS and the word 'conjur'(conjur is a reserved name within the leader container). Also stay away from using 'localhost' as this will cause issues with networking. There will also be configured authenticators based on the policies loaded with option 4. Logging level will be configured to debug to aid in troubleshooting if needed. The self-signed certificate and CA will also be exported to the current directory so that you can distribute to your apps. 
 
 ### Option 3
-This option will launch and configure a conjur cli container. This is required before performing option 4. 
+This option will launch and configure a conjur cli container. ***NOT NEEDED FOR POLICY LOADING*** 
 
 ### Option 4
 The desired result of this option is to load in some basic conjur policies into a conjur environment. The basic policies loaded are:
@@ -64,7 +64,7 @@ The desired result of this option is to load in some basic conjur policies into 
 9. tanzu
 10. secrets
 
-All of the policy files will are contained in the policy directory in this repo. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. This option can be use to reload policies after changes. 
+All of the policy files will are contained in the policy directory in this repo. The loading is accomplished via REST through the menu option. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. This option can be use to reload policies after changes. 
 
 ### Option 5
 This option will create a seed file for a follower. You will be prompted for the follwer's DNS name. This could be a loadblancer DNS name that sits in front of the follwer(s). Note that for loadbalancers we will have to set the trusted proxy address in Conjur. The loadbalancer will have to be configured with Forward-for so that Conjur can see the original IP of the incoming request if host/ip security is required. The seed file is outputted to the current directory named 'follower_seed.tar'.
