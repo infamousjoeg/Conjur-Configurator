@@ -44,6 +44,7 @@ function_menu(){
       echo "    	3  -  Deploy and configure Conjur CLI container."
       echo "    	4  -  Configure POC Policies for Conjur."
       echo "    	5  -  Create seed package for Conjur Follower."
+      echo "    	6  -  Create seed package for Conjur Standby."
       echo "    	9  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
@@ -56,6 +57,7 @@ function_menu(){
         3 ) clear ; cli_configure_menu ; press_enter ;;
         4 ) clear ; policy_load_rest ; press_enter ;;
         5 ) clear ; create_follower_seed ; press_enter ;;
+        6 ) clear ; create_standby_seed ; press_enter ;;
         9 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
@@ -144,16 +146,27 @@ config_check(){
 create_follower_seed(){
   echo "Checking to see if Master is configured"
   echo -n "Enter follower DNS name (or follower loadbalancer name): "
-  read fqdn_loadblancer_follower
-  update_config 'fqdn_loadblancer_follower' $fqdn_loadblancer_follower
-  docker exec $leader_container_id evoke seed follower $fqdn_loadblancer_follower > follower_seed.tar
+  read fqdn_loadbalancer_follower
+  update_config 'fqdn_loadbalancer_follower' $fqdn_loadbalancer_follower
+  docker exec $leader_container_id evoke seed follower $fqdn_loadbalancer_follower > follower_seed.tar
   echo "Seed file exported at $PWD/follower_seed.tar."
   echo "Please transport that file over to the follower instance."
 }
 
+create_standby_seed(){
+  echo "Checking to see if Master is configured"
+  echo -n "Enter standby DNS name: "
+  read fqdn_loadbalancer_standby
+  update_config 'fqdn_loadbalancer_standby' $fqdn_loadbalancer_standby
+  docker exec $leader_container_id evoke seed standby $fqdn_loadbalancer_standby > standby_seed.tar
+  echo "Seed file exported at $PWD/standby_seed.tar."
+  echo "Please transport that file over to the standby instance."
+}
+
+
 import_config(){
   local count=$(wc -l < $config_filepath)
-  if [ $count -eq 7 ]
+  if [ $count -eq 8 ]
   then
     echo "Configuration file is correct!"
     echo "||||||||||||||||||||||||||||||"
@@ -177,7 +190,8 @@ delete_config(){
   conjur_image=
   cli_image=
   fqdn_loadbalancer_leader=
-  fqdn_loadblancer_follower=
+  fqdn_loadbalancer_follower=
+  fqdn_loadbalancer_standby=
   leader_container_id=
   cli_container_id=
   company_name=
@@ -195,7 +209,8 @@ create_config(){
 conjur_image=
 cli_image=
 fqdn_loadbalancer_leader=
-fqdn_loadblancer_follower=
+fqdn_loadbalancer_follower=
+fqdn_loadbalancer_standby=
 leader_container_id=
 cli_container_id=
 company_name=
