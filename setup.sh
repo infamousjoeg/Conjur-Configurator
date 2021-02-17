@@ -162,10 +162,16 @@ create_k8s_yaml(){
       sed -i '' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
       sed -i '' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
     else
-      echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
+      echo "Unknown OS for using sed command. Configuration fill will not be updated! Returning to previous menu" 
+      press_enter
+      ${FUNCNAME[1]};
     fi
+    echo "File has been created $PWD/$company_name-k8s_follower.yaml"
   else
     echo "Leader not reporting as health. Is the leader running on this machine?"
+    echo "Returning to previous menu."
+    press_enter
+    ${FUNCNAME[1]};
   fi
 }
 
