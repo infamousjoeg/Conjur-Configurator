@@ -72,6 +72,9 @@ This option will create a seed file for a follower. You will be prompted for the
 ### Option 6
 This option will create a seed file for a standby. You will be prompted for the standby's DNS name. The seed file is outputted to the current directory named 'standby_seed.tar'.
 
+### Option 7
+This option will create a yaml file to deploy a follower inside of k8s. THe manifest will have the company name at the beginning of the yaml file. This file will have all the information needed to create a follower inside of it's own namespace "Conjur". 
+
 ### Option 9
 This option will remove all containers stood up by this program. It will also show all of the configuration file settings before deleting the file. The folder containing the configuration (file $HOME/.config/cybr/) is NOT deleted in case there are other entries. The mounted folders to the container image is also retained in case there are files you'd like to review. 
 

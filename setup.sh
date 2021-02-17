@@ -45,6 +45,7 @@ function_menu(){
       echo "    	4  -  Configure POC Policies for Conjur."
       echo "    	5  -  Create seed package for Conjur Follower."
       echo "    	6  -  Create seed package for Conjur Standby."
+      echo "    	7  -  Create K8s follower manifest."
       echo "    	9  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
@@ -58,6 +59,7 @@ function_menu(){
         4 ) clear ; policy_load_rest ; press_enter ;;
         5 ) clear ; create_follower_seed ; press_enter ;;
         6 ) clear ; create_standby_seed ; press_enter ;;
+        7 ) clear ; create_k8s_yaml ; press_enter ;;
         9 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
@@ -143,6 +145,30 @@ config_check(){
   fi
 }
 
+create_k8s_yaml(){
+  echo "This option will create a k8s manifest file and output it to the current directory."
+  if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+  then
+    echo "Leader machine is healthy and available."
+    cp ./templates/k8s_template.yml "$company_name-k8s_follower.yaml"
+    if [[ "$OSTYPE" == "linux-gnu"* ]]
+    then
+      sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader~" "$company_name-k8s_follower.yaml" 
+      sed -i'' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
+      sed -i'' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
+    elif [[ "$OSTYPE" == "darwin"* ]]
+    then
+      sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader~" "$company_name-k8s_follower.yaml" 
+      sed -i '' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
+      sed -i '' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
+    else
+      echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
+    fi
+  else
+    echo "Leader not reporting as health. Is the leader running on this machine?"
+  fi
+}
+
 create_follower_seed(){
   echo "Checking to see if Master is configured"
   echo -n "Enter follower DNS name (or follower loadbalancer name): "
@@ -166,7 +192,7 @@ create_standby_seed(){
 
 import_config(){
   local count=$(wc -l < $config_filepath)
-  if [ $count -eq 8 ]
+  if [ $count -eq 9 ]
   then
     echo "Configuration file is correct!"
     echo "||||||||||||||||||||||||||||||"
@@ -195,6 +221,7 @@ delete_config(){
   leader_container_id=
   cli_container_id=
   company_name=
+  ssl_cert=
   rm -f $config_filepath
 }
 
@@ -214,6 +241,7 @@ fqdn_loadbalancer_standby=
 leader_container_id=
 cli_container_id=
 company_name=
+ssl_cert=
 EOF
 fi
 }
@@ -436,6 +464,9 @@ configure_leader_container(){
         echo "Exporting certificate to current directory"
         docker cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader.pem .
         mv $fqdn_loadbalancer_leader.pem conjur-$company_name.pem
+        cert=$(<conjur-$company_name.pem)
+        ssl_cert="${cert//$'\n'/\\\\n}"
+        update_config 'ssl_cert' "$ssl_cert"
         echo "Exported certificate to $PWD/conjur-$company_name.pem"
         echo ""
         echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, and Azure authenticator."
