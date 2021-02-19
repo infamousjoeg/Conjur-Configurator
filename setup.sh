@@ -415,13 +415,15 @@ deploy_leader_container(){
     echo ""
     echo -n "Enter the DNS name for the Conjur leader (Name can not be \"localhost\" or \"conjur\" or contain any spaces): "
     read fqdn_leader
-    if [[ $fqdn_leader = *" "* ]] || [[ $fqdn_leader = localhost ]] || [[ $fqdn_leader = conjur ]]
+    if [[ $fqdn_leader = *" "* ]] || [[ $fqdn_leader = localhost ]] || [[ $fqdn_leader = conjur ]] || [[ $fqdn_leader = "" ]]
     then
       echo "Load balancer DNS name as "$fqdn_leader" is not supported."
       echo "The name can not:"
       echo " - Contain any spaces."
       echo " - Be \"localhost\""
       echo " - Be \"conjur\""
+      echo " - Be blank."
+      press_enter
       deploy_leader_container
     else
       update_config 'fqdn_leader' $fqdn_leader
@@ -458,7 +460,19 @@ loadbalancer_leader_exists(){
   then
     echo -n "What is the DNS name of the loadbalancer for the leader/standby instances?: "
     read fqdn_loadbalancer_leader_standby
-    update_config 'fqdn_loadbalancer_leader_standby' $fqdn_loadbalancer_leader_standby
+    if [[ $fqdn_loadbalancer_leader_standby = *" "* ]] || [[ $fqdn_loadbalancer_leader_standby = localhost ]] || [[ $fqdn_loadbalancer_leader_standby = conjur ]] || [[ $fqdn_loadbalancer_leader_standby = "" ]]
+    then
+      echo "Load balancer DNS name as "$fqdn_loadbalancer_leader_standby" is not supported."
+      echo "The name can not:"
+      echo " - Contain any spaces."
+      echo " - Be \"localhost\"."
+      echo " - Be \"conjur\"."
+      echo " - Be blank."
+      press_enter
+      loadbalancer_leader_exists
+    else
+      update_config 'fqdn_loadbalancer_leader_standby' $fqdn_loadbalancer_leader_standby
+    fi
   elif [[ $loadbalancer_exists = "n" ]]
   then
     echo "No loadblancer DNS will be configured"
@@ -473,8 +487,8 @@ loadbalancer_leader_exists(){
 
 #Configure Conjur Enterprise Leader container as leader.
 configure_leader_container(){
-  echo "Checking to make sure container is currently running."
-  if docker container inspect $leader_container_id &> /dev/null
+  echo "Checking to make sure leader container is currently running."
+  if docker container ls --filter id=$leader_container_id | grep Up  &> /dev/null
   then
     echo "Found container $leader_container_id running."
     admin_password=$(generate_strong_password)
@@ -486,8 +500,10 @@ configure_leader_container(){
       echo "Company name as "$company_name" is not supported."
       echo "The name can not:"
       echo " - Contain any spaces."
-      echo " - Be \"localhost\""
-      echo " - Be \"conjur\""
+      echo " - Be \"localhost\"."
+      echo " - Be \"conjur\"."
+      echo " - Be blank."
+      press_enter
       configure_leader_container
     else
       update_config 'company_name' $company_name
