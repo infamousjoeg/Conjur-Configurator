@@ -598,7 +598,19 @@ policy_load_rest(){
     echo -n "Enter your admin password: "
     read -s admin_password
     echo ""
-    policy_load_rest;
+    output=$(curl -sIk -o /dev/null -w "%{http_code}" --user admin:$admin_password https://localhost/authn/cyberark/login)
+    if $(echo $output | grep "200" > /dev/null)
+    then
+      echo "Verified that the admin password is correct."
+      press_enter
+      policy_load_rest
+    else
+      echo "Admin password is incorrect please re-enter."
+      unset admin_password
+      press_enter
+      policy_load_rest
+    fi
+    policy_load_rest
   else
     if $(curl -ikL --output /dev/null --silent --head --fail https://$fqdn_leader/health)
     then
