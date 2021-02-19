@@ -375,7 +375,7 @@ local_registry(){
 }
 
 import_registry(){
-  echo "Scanning current directory for for saved image file."
+  echo "Scanning current directory for saved image file."
   if [ $(find conjur-app*) &> /dev/null ] && [ $1 = "conjur_ent" ]
   then
     echo "Found local appliance file."
