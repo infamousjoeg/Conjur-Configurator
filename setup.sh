@@ -54,7 +54,7 @@ function_menu(){
       echo ""
       case $selection in
         1 ) clear ; create_config ; docker_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
-        2 ) clear ; configure_leader_container ; press_enter ;;
+        2 ) clear ; loadbalancer_leader_exists ; configure_leader_container ; press_enter ;;
         3 ) clear ; cli_configure_menu ; press_enter ;;
         4 ) clear ; policy_load_rest ; press_enter ;;
         5 ) clear ; create_follower_seed ; press_enter ;;
@@ -145,60 +145,9 @@ config_check(){
   fi
 }
 
-create_k8s_yaml(){
-  echo "This option will create a k8s manifest file and output it to the current directory."
-  if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
-  then
-    echo "Leader machine is healthy and available."
-    cp ./templates/k8s_template.yml "$company_name-k8s_follower.yaml"
-    if [[ "$OSTYPE" == "linux-gnu"* ]]
-    then
-      sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader~" "$company_name-k8s_follower.yaml" 
-      sed -i'' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
-      sed -i'' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
-    elif [[ "$OSTYPE" == "darwin"* ]]
-    then
-      sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader~" "$company_name-k8s_follower.yaml" 
-      sed -i '' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
-      sed -i '' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
-    else
-      echo "Unknown OS for using sed command. Configuration fill will not be updated! Returning to previous menu" 
-      press_enter
-      ${FUNCNAME[1]};
-    fi
-    echo "File has been created $PWD/$company_name-k8s_follower.yaml"
-  else
-    echo "Leader not reporting as health. Is the leader running on this machine?"
-    echo "Returning to previous menu."
-    press_enter
-    ${FUNCNAME[1]};
-  fi
-}
-
-create_follower_seed(){
-  echo "Checking to see if Master is configured"
-  echo -n "Enter follower DNS name (or follower loadbalancer name): "
-  read fqdn_loadbalancer_follower
-  update_config 'fqdn_loadbalancer_follower' $fqdn_loadbalancer_follower
-  docker exec $leader_container_id evoke seed follower $fqdn_loadbalancer_follower > follower_seed.tar
-  echo "Seed file exported at $PWD/follower_seed.tar."
-  echo "Please transport that file over to the follower instance."
-}
-
-create_standby_seed(){
-  echo "Checking to see if Master is configured"
-  echo -n "Enter standby DNS name: "
-  read fqdn_loadbalancer_standby
-  update_config 'fqdn_loadbalancer_standby' $fqdn_loadbalancer_standby
-  docker exec $leader_container_id evoke seed standby $fqdn_loadbalancer_standby > standby_seed.tar
-  echo "Seed file exported at $PWD/standby_seed.tar."
-  echo "Please transport that file over to the standby instance."
-}
-
-
 import_config(){
   local count=$(wc -l < $config_filepath)
-  if [ $count -eq 9 ]
+  if [ $count -eq 10 ]
   then
     echo "Configuration file is correct!"
     echo "||||||||||||||||||||||||||||||"
@@ -221,9 +170,10 @@ delete_config(){
   echo "Removing in memory variables."
   conjur_image=
   cli_image=
-  fqdn_loadbalancer_leader=
-  fqdn_loadbalancer_follower=
-  fqdn_loadbalancer_standby=
+  fqdn_leader=
+  fqdn_follower=
+  fqdn_standby=
+  fqdn_loadbalancer_leader_standby=
   leader_container_id=
   cli_container_id=
   company_name=
@@ -241,9 +191,10 @@ create_config(){
     cat <<EOF > $config_filepath
 conjur_image=
 cli_image=
-fqdn_loadbalancer_leader=
-fqdn_loadbalancer_follower=
-fqdn_loadbalancer_standby=
+fqdn_leader=
+fqdn_follower=
+fqdn_standby=
+fqdn_loadbalancer_leader_standby=
 leader_container_id=
 cli_container_id=
 company_name=
@@ -262,6 +213,66 @@ update_config(){
   else
     echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
   fi
+}
+
+create_k8s_yaml(){
+  echo "This option will create a k8s manifest file and output it to the current directory."
+  if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+  then
+    echo "Leader machine is healthy and available."
+    cp ./templates/k8s_template.yml "$company_name-k8s_follower.yaml"
+    if [[ "$OSTYPE" == "linux-gnu"* ]]
+    then
+      if [ -z $fqdn_loadbalancer_leader_standby ];
+      then
+        sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
+      else
+        sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
+      fi
+      sed -i'' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
+      sed -i'' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
+    elif [[ "$OSTYPE" == "darwin"* ]]
+    then
+      if [ -z $fqdn_loadbalancer_leader_standby ];
+      then
+        sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
+      else
+        sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
+      fi
+      sed -i '' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
+      sed -i '' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
+    else
+      echo "Unknown OS for using sed command. Configuration fill will not be updated! Returning to previous menu" 
+      press_enter
+      ${FUNCNAME[1]};
+    fi
+    echo "File has been created $PWD/$company_name-k8s_follower.yaml"
+  else
+    echo "Leader not reporting as health. Is the leader running on this machine?"
+    echo "Returning to previous menu."
+    press_enter
+    ${FUNCNAME[1]};
+  fi
+}
+
+create_follower_seed(){
+  echo "Checking to see if Master is configured"
+  echo -n "Enter follower DNS name (or follower loadbalancer name): "
+  read fqdn_follower
+  update_config 'fqdn_follower' $fqdn_follower
+  docker exec $leader_container_id evoke seed follower $fqdn_follower > follower_seed.tar
+  echo "Seed file exported at $PWD/follower_seed.tar."
+  echo "Please transport that file over to the follower instance."
+}
+
+create_standby_seed(){
+  echo "Checking to see if Master is configured"
+  echo -n "Enter standby DNS name: "
+  read fqdn_standby
+  update_config 'fqdn_standby' $fqdn_standby
+  docker exec $leader_container_id evoke seed standby $fqdn_standby > standby_seed.tar
+  echo "Seed file exported at $PWD/standby_seed.tar."
+  echo "Please transport that file over to the standby instance."
 }
 
 #check that machine has docker.
@@ -402,25 +413,25 @@ import_registry(){
 deploy_leader_container(){    
     echo "Starting configuration of the leader container."
     echo ""
-    echo -n "Enter the DNS name for the Conjur Leader and Standby instance(s) load balancer (Name can not be \"localhost\" or \"conjur\" or container any spaces): "
-    read fqdn_loadbalancer_leader
-    if [[ $fqdn_loadbalancer_leader = *" "* ]] || [[ $fqdn_loadbalancer_leader = localhost ]] || [[ $fqdn_loadbalancer_leader = conjur ]]
+    echo -n "Enter the DNS name for the Conjur leader (Name can not be \"localhost\" or \"conjur\" or contain any spaces): "
+    read fqdn_leader
+    if [[ $fqdn_leader = *" "* ]] || [[ $fqdn_leader = localhost ]] || [[ $fqdn_leader = conjur ]]
     then
-      echo "Load balancer DNS name as "$fqdn_loadbalancer_leader" is not supported."
+      echo "Load balancer DNS name as "$fqdn_leader" is not supported."
       echo "The name can not:"
       echo " - Contain any spaces."
       echo " - Be \"localhost\""
       echo " - Be \"conjur\""
       deploy_leader_container
     else
-      update_config 'fqdn_loadbalancer_leader' $fqdn_loadbalancer_leader
+      update_config 'fqdn_leader' $fqdn_leader
       echo "Creating local folders."
       mkdir -p $config_dir/{security,configuration,backup,seeds,logs}
       echo "Creating Conjur Docker network."
       docker network create conjur &> /dev/null
       echo "Starting container."
       leader_container_id=$(docker container run \
-      --name $fqdn_loadbalancer_leader \
+      --name $fqdn_leader \
       --detach \
       --network conjur \
       --restart=unless-stopped \
@@ -440,6 +451,26 @@ deploy_leader_container(){
     fi
 }
 
+loadbalancer_leader_exists(){
+  echo -n "Will there be a loadbalancer used for the leader and standby instance? (y or n): "
+  read loadbalancer_exists
+  if [[ $loadbalancer_exists = "y" ]]
+  then
+    echo -n "What is the DNS name of the loadbalancer for the leader/standby instances?: "
+    read fqdn_loadbalancer_leader_standby
+    update_config 'fqdn_loadbalancer_leader_standby' $fqdn_loadbalancer_leader_standby
+  elif [[ $loadbalancer_exists = "n" ]]
+  then
+    echo "No loadblancer DNS will be configured"
+    press_enter
+  else
+    echo "Incorrect selection. You entered \"$loadbalancer_exists\" and that is not supported"
+    echo "Returning to previous menu."
+    press_enter
+    ${FUNCNAME[1]};
+  fi
+}
+
 #Configure Conjur Enterprise Leader container as leader.
 configure_leader_container(){
   echo "Checking to make sure container is currently running."
@@ -450,7 +481,7 @@ configure_leader_container(){
     echo ""
     echo -n "Please enter company short name (Spaces are not supported): "
     read company_name
-    if [[ $company_name = *" "* ]] || [[ $company_name = localhost ]] || [[ $company_name = conjur ]]
+    if [[ $company_name = *" "* ]] || [[ $company_name = localhost ]] || [[ $company_name = conjur ]] || [[ $company_name = "" ]]
     then
       echo "Company name as "$company_name" is not supported."
       echo "The name can not:"
@@ -462,14 +493,25 @@ configure_leader_container(){
       update_config 'company_name' $company_name
       echo ""
       echo "Configuring Conjur Leader container using company name: $company_name"
-      docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer_leader --admin-password $admin_password $company_name
+      if [ -z $fqdn_loadbalancer_leader_standby ];
+      then
+        docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_leader --admin-password $admin_password $company_name
+      else
+        docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer_leader_standby --master-altnames $fqdn_leader --admin-password $admin_password $company_name
+      fi
       echo "Checking to make sure container has come up successfully"
       if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
       then
         echo ""
         echo "Exporting certificate to current directory"
-        docker cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader.pem .
-        mv $fqdn_loadbalancer_leader.pem conjur-$company_name.pem
+        if [ -z $fqdn_loadbalancer_leader_standby ];
+        then
+          docker cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_leader.pem .
+          mv $fqdn_leader.pem conjur-$company_name.pem
+        else
+          docker cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem .
+          mv $fqdn_loadbalancer_leader_standby.pem conjur-$company_name.pem
+        fi
         cert=$(<conjur-$company_name.pem)
         ssl_cert="${cert//$'\n'/\\\\n}"
         update_config 'ssl_cert' "$ssl_cert"
@@ -528,7 +570,7 @@ cli_configure(){
     #Init conjur session from CLI container
 
     echo "Configuring CLI container to talk to leader."
-    docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_loadbalancer_leader <<< yes &> /dev/null
+    docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_leader <<< yes &> /dev/null
     echo "Logging into leader as admin."
     docker exec $cli_container_id conjur authn login -u admin -p $admin_password
   fi
@@ -543,29 +585,29 @@ policy_load_rest(){
     policy_load_rest;
   else
     echo "Getting API KEY"
-    api_key=$(curl -k -s -X GET -u admin:$admin_password https://$fqdn_loadbalancer_leader/authn/$company_name/login)
+    api_key=$(curl -k -s -X GET -u admin:$admin_password https://$fqdn_leader/authn/$company_name/login)
     echo "Getting Auth token"
-    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://$fqdn_loadbalancer_leader/authn/$company_name/admin/authenticate)
+    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://$fqdn_leader/authn/$company_name/admin/authenticate)
     echo "Loading root policy."
-    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/root)
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://$fqdn_leader/policies/$company_name/policy/root)
     echo "Loading app policy."
-    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/apps)
+    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://$fqdn_leader/policies/$company_name/policy/apps)
     echo "Loading Conjur policy."
-    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/conjur.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur)
+    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/conjur.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur)
     echo "Loading IAM policy."
-    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-iam/prod)
+    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-iam/prod)
     echo "Loading Kubernetes policy."
-    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-k8s/prod)
+    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-k8s/prod)
     echo "Loading OIDC policy."
-    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-oidc/provider)
+    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-oidc/provider)
     echo "Loading Seed Generation policy."
-    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/seed-generation)
+    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/seed-generation)
     echo "Loading Tanzu policy."
-    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/tanzu)
+    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://$fqdn_leader/policies/$company_name/policy/tanzu)
     echo "Loading Azure policy."
-    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/conjur/authn-azure/prod)
+    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-azure/prod)
     echo "loading secrets policy."
-    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://$fqdn_loadbalancer_leader/policies/$company_name/policy/secrets)
+    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://$fqdn_leader/policies/$company_name/policy/secrets)
     echo ""
     echo "Here are the users that were created:"
     echo $root_policy_output
@@ -580,27 +622,27 @@ policy_load_rest(){
     echo $azure_policy_output
     echo ""
     echo "Creating dummy secret for ansible"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
     echo "Creating dummy secret for electric flow"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/electric_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/electric_secret
     echo "Creating dummy secret for openshift"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
     echo "Creating dummy secret for docker"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/docker_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/docker_secret
     echo "Creating dummy secret for aws"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/aws_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/aws_secret
     echo "Creating dummy secret for azure"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/azure_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/azure_secret
     echo "Creating dummy secret for kubernetes"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
     echo "Creating dummy secret for terraform"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
     echo "Creating dummy secret for puppet"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
     echo "Creating dummy secret for chef"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/ci-variables/chef_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/ci-variables/chef_secret
     echo "Creating dummy secret for jenkins"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_loadbalancer_leader/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
     echo ""
   fi
 }
