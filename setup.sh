@@ -53,7 +53,7 @@ function_menu(){
       read selection
       echo ""
       case $selection in
-        1 ) clear ; create_config ; docker_check ; press_enter ; deploy_leader_container_menu ; press_enter ;;
+        1 ) clear ; create_config ; container_runtime ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; loadbalancer_leader_exists ; configure_leader_container ; press_enter ;;
         3 ) clear ; cli_configure_menu ; press_enter ;;
         4 ) clear ; policy_load_rest ; press_enter ;;
@@ -147,7 +147,7 @@ config_check(){
 
 import_config(){
   local count=$(wc -l < $config_filepath)
-  if [ $count -eq 10 ]
+  if [ $count -eq 11 ]
   then
     echo "Configuration file is correct!"
     echo "||||||||||||||||||||||||||||||"
@@ -176,6 +176,7 @@ delete_config(){
   fqdn_loadbalancer_leader_standby=
   leader_container_id=
   cli_container_id=
+  container_command=
   company_name=
   ssl_cert=
   rm -f $config_filepath
@@ -197,6 +198,7 @@ fqdn_standby=
 fqdn_loadbalancer_leader_standby=
 leader_container_id=
 cli_container_id=
+container_command=
 company_name=
 ssl_cert=
 EOF
@@ -260,7 +262,7 @@ create_follower_seed(){
   echo -n "Enter follower DNS name (or follower loadbalancer name): "
   read fqdn_follower
   update_config 'fqdn_follower' $fqdn_follower
-  docker exec $leader_container_id evoke seed follower $fqdn_follower > follower_seed.tar
+  $container_command exec $leader_container_id evoke seed follower $fqdn_follower > follower_seed.tar
   echo "Seed file exported at $PWD/follower_seed.tar."
   echo "Please transport that file over to the follower instance."
 }
@@ -270,25 +272,35 @@ create_standby_seed(){
   echo -n "Enter standby DNS name: "
   read fqdn_standby
   update_config 'fqdn_standby' $fqdn_standby
-  docker exec $leader_container_id evoke seed standby $fqdn_standby > standby_seed.tar
+  $container_command exec $leader_container_id evoke seed standby $fqdn_standby > standby_seed.tar
   echo "Seed file exported at $PWD/standby_seed.tar."
   echo "Please transport that file over to the standby instance."
 }
 
+#check if Podman or docker
+container_runtime(){
+  if command -v docker &> /dev/null
+  then
+    echo "Docker has been found."
+    container_command="docker"
+    update_config 'container_command' $container_command
+    docker_check
+  elif command -v podman &> /dev/null
+  then
+    echo "PodMan has been found."
+    container_command="podman"
+    update_config 'container_command' $container_command
+  else
+    echo "No Runtime found."
+    echo "Returning to main menu."
+    press_enter;
+    function_menu;
+  fi
+}
 #check that machine has docker.
 docker_check(){
-  echo "Checking to see if docker is installed"
-    #figure out if Docker is installed
-    if ! command -v docker &> /dev/null
-    then
-      echo "Docker not found. Please install docker."
-      press_enter;
-      exit 1
-    else
-      echo "Docker Installed"
-    fi
   echo "Checking if the daemon is accessible"
-    if ! docker info >/dev/null 2>&1; 
+    if ! $container_command info >/dev/null 2>&1; 
     then
       echo "Docker daemon doesn't appear to be running or is inaccessible."
       echo "Returning to main menu."
@@ -298,7 +310,7 @@ docker_check(){
       echo "Docker daemon appears to be running."
     fi
   echo "Checking if d_type true"
-    if ! docker system info | grep "Supports d_type: true" >/dev/null 2>&1; 
+    if ! $container_command system info | grep "Supports d_type: true" >/dev/null 2>&1; 
     then
       echo "Docker d_type isn't enabled."
       echo "Returning to main menu."
@@ -319,13 +331,13 @@ pull_dockerhub(){
         then
           conjur_image=captainfluffytoes/csme:latest
           echo "Pulling image: $conjur_image"
-          docker pull $conjur_image &> /dev/null
+          $container_command pull $conjur_image &> /dev/null
           update_config 'conjur_image' $conjur_image
         elif [ $1 = "cli" ]
         then
           cli_image=cyberark/conjur-cli:5-latest
           echo "Pulling image: $cli_image"
-          docker pull $cli_image &> /dev/null
+          $container_command pull $cli_image &> /dev/null
           update_config 'cli_image' $cli_image
         fi
   else
@@ -339,7 +351,7 @@ pull_dockerhub(){
 private_registry(){
   echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
   read image
-  if ! docker pull $image
+  if ! $container_command pull $image
   then
     echo "Couldn't pull image from registry. Please verify network connection and/or verify that docker is properly authenticated."
     press_enter;
@@ -347,7 +359,7 @@ private_registry(){
   else
     echo "Connection to registry successful!"
     echo "Pulling image."
-    docker pull $image &> /dev/null
+    $container_command pull $image &> /dev/null
     echo ""
     echo "Successfully pulled image!"
       if [ $1 = "conjur_ent" ]
@@ -365,7 +377,7 @@ private_registry(){
 local_registry(){
   echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
   read image
-  if [ "$(docker images --filter "reference=$image")" = "" ]
+  if [ "$($container_command images --filter "reference=$image")" = "" ]
   then
     echo "Could not find image in local registry."
     echo "Returning to previous menu."
@@ -391,14 +403,14 @@ import_registry(){
   then
     echo "Found local appliance file."
     tarname=$(find conjur-app*)
-    conjur_image=$(docker load -i $tarname)
+    conjur_image=$($container_command load -i $tarname)
     conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
     update_config 'conjur_image' $conjur_image
   elif [ $(find conjur-cli*) &> /dev/null ] && [ $1 = "cli" ]
   then
     echo "Found local cli file."
     tarname=$(find conjur-cli*)
-    cli_image=$(docker load -i $tarname)
+    cli_image=$($container_command load -i $tarname)
     cli_image=$(echo $cli_image | sed 's/Loaded image: //')
     update_config 'cli_image' $cli_image
   else
@@ -429,10 +441,10 @@ deploy_leader_container(){
       update_config 'fqdn_leader' $fqdn_leader
       echo "Creating local folders."
       mkdir -p $config_dir/{security,configuration,backup,seeds,logs}
-      echo "Creating Conjur Docker network."
-      docker network create conjur &> /dev/null
+      echo "Creating Conjur $container_command network."
+      $container_command network create conjur &> /dev/null
       echo "Starting container."
-      leader_container_id=$(docker container run \
+      leader_container_id=$($container_command container run \
       --name $fqdn_leader \
       --detach \
       --network conjur \
@@ -488,7 +500,7 @@ loadbalancer_leader_exists(){
 #Configure Conjur Enterprise Leader container as leader.
 configure_leader_container(){
   echo "Checking to make sure leader container is currently running."
-  if docker container ls --filter id=$leader_container_id | grep Up  &> /dev/null
+  if $container_command container ls --filter id=$leader_container_id | grep Up  &> /dev/null
   then
     echo "Found container $leader_container_id running."
     admin_password=$(generate_strong_password)
@@ -511,9 +523,9 @@ configure_leader_container(){
       echo "Configuring Conjur Leader container using company name: $company_name"
       if [ -z $fqdn_loadbalancer_leader_standby ];
       then
-        docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_leader --admin-password $admin_password $company_name
+        $container_command exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_leader --admin-password $admin_password $company_name
       else
-        docker exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer_leader_standby --master-altnames $fqdn_leader --admin-password $admin_password $company_name
+        $container_command exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer_leader_standby --master-altnames $fqdn_leader --admin-password $admin_password $company_name
       fi
       echo "Checking to make sure container has come up successfully"
       if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
@@ -522,10 +534,10 @@ configure_leader_container(){
         echo "Exporting certificate to current directory"
         if [ -z $fqdn_loadbalancer_leader_standby ];
         then
-          docker cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_leader.pem .
+          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_leader.pem .
           mv $fqdn_leader.pem conjur-$company_name.pem
         else
-          docker cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem .
+          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem .
           mv $fqdn_loadbalancer_leader_standby.pem conjur-$company_name.pem
         fi
         cert=$(<conjur-$company_name.pem)
@@ -534,11 +546,11 @@ configure_leader_container(){
         echo "Exported certificate to $PWD/conjur-$company_name.pem"
         echo ""
         echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, and Azure authenticator."
-        docker exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider &> /dev/null
-        docker exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
+        $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider &> /dev/null
+        $container_command exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
         echo ""
         echo "Setting log level to debug"
-        docker exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
+        $container_command exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
         echo ""
         echo "Conjur Leader successfully configured!!!"
         echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
@@ -564,11 +576,11 @@ generate_strong_password(){
 #remove containers that have been configured
 remove_container(){
   echo "Removing leader container."
-  docker container rm -f $leader_container_id &> /dev/null
+  $container_command container rm -f $leader_container_id &> /dev/null
   echo "Removing CLI container."
-  docker container rm -f $cli_container_id &> /dev/null
+  $container_command container rm -f $cli_container_id &> /dev/null
   echo "Removing docker network."
-  docker network rm conjur &> /dev/null
+  $container_command network rm conjur &> /dev/null
   delete_config
 }
 
@@ -581,14 +593,14 @@ cli_configure(){
     cli_configure;
   else
     echo "Standing up the CLI container."
-    cli_container_id=$(docker container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
+    cli_container_id=$($container_command container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
     update_config 'cli_container_id' $cli_container_id
     #Init conjur session from CLI container
 
     echo "Configuring CLI container to talk to leader."
-    docker exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_leader <<< yes &> /dev/null
+    $container_command exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_leader <<< yes &> /dev/null
     echo "Logging into leader as admin."
-    docker exec $cli_container_id conjur authn login -u admin -p $admin_password
+    $container_command exec $cli_container_id conjur authn login -u admin -p $admin_password
   fi
 }
 
