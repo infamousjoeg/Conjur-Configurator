@@ -6,7 +6,18 @@ config_dir="$HOME/.config/cybr"
 config_filename="conjurinstaller.config"
 config_filepath="$config_dir/$config_filename"
 
-#menu
+#This function will check for the existence of a previous configuration file.
+config_check(){
+  if [ -a $config_filepath ];
+  then
+    import_menu
+  else
+    create_config
+    function_menu
+  fi
+}
+
+#This menu will be triggered if a configuration file is found on the system. It gives you an option for importing of the file. 
 import_menu(){
     until [ "$selection" = "0" ]; do
       clear;
@@ -33,6 +44,7 @@ import_menu(){
     done
 }
 
+#Main menu with all of the options.
 function_menu(){
     until [ "$selection" = "0" ]; do
       clear;
@@ -67,6 +79,7 @@ function_menu(){
     done
 }
 
+#Menu for deciding how to pull the leader image.
 deploy_leader_container_menu(){
     until [ "$selection" = "0" ]; do
       clear;
@@ -85,7 +98,7 @@ deploy_leader_container_menu(){
       echo ""
       case $selection in
         1 ) clear ; pull_dockerhub "conjur_ent" ; press_enter ; deploy_leader_container ; press_enter ; function_menu ;;
-        2 ) clear ; private_registry "conjur_ent" ; deploy_leader_container ; press_enter ; function_menu ;;
+        2 ) clear ; private_registry "conjur_ent" ; press_enter ; deploy_leader_container ; press_enter ; function_menu ;;
         3 ) clear ; local_registry "conjur_ent" ; deploy_leader_container ; press_enter ; function_menu ;;
         4 ) clear ; import_registry "conjur_ent" ; deploy_leader_container ; press_enter ; function_menu ;;
         5 ) clear ; function_menu ;;
@@ -123,6 +136,7 @@ cli_configure_menu(){
     done
 }
 
+#Separate different functions to keep information on the screen if needed. 
 press_enter() {
   echo ""
   echo -n "	Press Enter to continue "
@@ -135,16 +149,7 @@ incorrect_selection() {
     echo "Incorrect selection! Try again."
 }
 
-config_check(){
-  if [ -a $config_filepath ];
-  then
-    import_menu
-  else
-    create_config
-    function_menu
-  fi
-}
-
+#Function to import the configuration file. Does checking on the contents to make sure it's formatted correctly. Will remove old file if something is wrong. 
 import_config(){
   local count=$(wc -l < $config_filepath)
   if [ $count -eq 11 ]
@@ -162,6 +167,7 @@ import_config(){
   fi
 }
 
+#Function to delete the old config file but print the contents first. Just in case they are needed in the future.
 delete_config(){
   echo "Contents of old configuration file:"
   echo "$(cat $config_filepath)"
@@ -182,6 +188,7 @@ delete_config(){
   rm -f $config_filepath
 }
 
+#Function to create a configuration file.
 create_config(){
   if [ -a $config_filepath ];
   then
@@ -205,6 +212,7 @@ EOF
 fi
 }
 
+#Function to update the configuration file based on parameters passed into the function.
 update_config(){
   if [[ "$OSTYPE" == "linux-gnu"* ]]
   then
@@ -217,6 +225,7 @@ update_config(){
   fi
 }
 
+#Function to create a k8s yaml to deploy a follower to kubernetes
 create_k8s_yaml(){
   echo "This option will create a k8s manifest file and output it to the current directory."
   if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
@@ -250,13 +259,14 @@ create_k8s_yaml(){
     fi
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
   else
-    echo "Leader not reporting as health. Is the leader running on this machine?"
+    echo "Leader not reporting as healthy. Is the leader running on this machine?"
     echo "Returning to previous menu."
     press_enter
     ${FUNCNAME[1]};
   fi
 }
 
+#Function to create a follower seed file in the current directory for use by another conjur instance. The seed file will need to be copied to the other instance/machine.
 create_follower_seed(){
   echo "Checking to see if Master is configured"
   echo -n "Enter follower DNS name (or follower loadbalancer name): "
@@ -267,6 +277,7 @@ create_follower_seed(){
   echo "Please transport that file over to the follower instance."
 }
 
+#Function to create a standby seed file in the current directory for use by another conjur instance. The seed file will need to be copied to the other instance/machine.
 create_standby_seed(){
   echo "Checking to see if Master is configured"
   echo -n "Enter standby DNS name: "
@@ -277,7 +288,7 @@ create_standby_seed(){
   echo "Please transport that file over to the standby instance."
 }
 
-#check if Podman or docker
+#check if Podman or Docker
 container_runtime(){
   if command -v podman &> /dev/null
   then
@@ -297,7 +308,8 @@ container_runtime(){
     function_menu;
   fi
 }
-#check that machine has docker.
+
+#Check the installation of Docker for known issues. 
 docker_check(){
   echo "Checking if the daemon is accessible"
     if ! $container_command info >/dev/null 2>&1; 
@@ -322,7 +334,7 @@ docker_check(){
   echo "All docker checks have passed."
 }
 
-
+#Function to pull image directly from docker hub. Defaults to using a public image. NOT OFFICIAL.
 pull_dockerhub(){
   if curl -Is https://hub.docker.com | head -n 1 | grep "200" &> /dev/null
   then
