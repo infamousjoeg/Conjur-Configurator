@@ -279,17 +279,17 @@ create_standby_seed(){
 
 #check if Podman or docker
 container_runtime(){
-  if command -v docker &> /dev/null
+  if command -v podman &> /dev/null
+  then
+    echo "PodMan has been found."
+    container_command="podman"
+    update_config 'container_command' $container_command
+  elif command -v docker &> /dev/null
   then
     echo "Docker has been found."
     container_command="docker"
     update_config 'container_command' $container_command
     docker_check
-  elif command -v podman &> /dev/null
-  then
-    echo "PodMan has been found."
-    container_command="podman"
-    update_config 'container_command' $container_command
   else
     echo "No Runtime found."
     echo "Returning to main menu."
