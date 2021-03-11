@@ -22,10 +22,15 @@ This script is intended to install CyberArk Conjur Enterprise Secrets Manager th
 
 ## Tested Operating Systems
 
-- CentOS 7.x
+- CentOS 7.x,8.x
 - MacOS 10.15.7,11.1
 - Ubuntu 18.x,19.x,20.x
-- RHEL 7.6
+- RHEL 7.6, 8.3
+
+## Tested Container Runtimes
+
+- Docker CE 20.10.5
+- podman 2.2.1,3.0.1
 
 ## Explanation of options
 
