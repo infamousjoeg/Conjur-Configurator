@@ -360,6 +360,7 @@ pull_dockerhub(){
   fi
 }
 
+#Function that will use a provate registry. You will need to provide the image name from a local registry. 
 private_registry(){
   echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
   read image
@@ -386,6 +387,7 @@ private_registry(){
   fi
 }
 
+#Function to pull something from the local registry. You will need to know the image name. 
 local_registry(){
   echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
   read image
@@ -636,32 +638,32 @@ policy_load_rest(){
     fi
     policy_load_rest
   else
-    if $(curl -ikL --output /dev/null --silent --head --fail https://$fqdn_leader/health)
+    if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
     then
       echo "Getting API KEY"
-      api_key=$(curl -k -s -X GET -u admin:$admin_password https://$fqdn_leader/authn/$company_name/login)
+      api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
       echo "Getting Auth token"
-      auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://$fqdn_leader/authn/$company_name/admin/authenticate)
+      auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
       echo "Loading root policy."
-      root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://$fqdn_leader/policies/$company_name/policy/root)
+      root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
       echo "Loading app policy."
-      app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://$fqdn_leader/policies/$company_name/policy/apps)
+      app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://localhost/policies/$company_name/policy/apps)
       echo "Loading Conjur policy."
-      conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/conjur.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur)
+      conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/conjur.yml)" https://localhost/policies/$company_name/policy/conjur)
       echo "Loading IAM policy."
-      conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-iam/prod)
+      conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/conjur/authn-iam/prod)
       echo "Loading Kubernetes policy."
-      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-k8s/prod)
+      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/conjur/authn-k8s/prod)
       echo "Loading OIDC policy."
-      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-oidc/provider)
+      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/conjur/authn-oidc/provider)
       echo "Loading Seed Generation policy."
-      seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/seed-generation)
+      seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/conjur/seed-generation)
       echo "Loading Tanzu policy."
-      tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://$fqdn_leader/policies/$company_name/policy/tanzu)
+      tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://localhost/policies/$company_name/policy/tanzu)
       echo "Loading Azure policy."
-      azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://$fqdn_leader/policies/$company_name/policy/conjur/authn-azure/prod)
+      azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://localhost/policies/$company_name/policy/conjur/authn-azure/prod)
       echo "loading secrets policy."
-      secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://$fqdn_leader/policies/$company_name/policy/secrets)
+      secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/secrets)
       echo ""
       echo "Here are the users that were created:"
       echo $root_policy_output
@@ -676,30 +678,30 @@ policy_load_rest(){
       echo $azure_policy_output
       echo ""
       echo "Creating dummy secret for ansible"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
       echo "Creating dummy secret for electric flow"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/electric_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/electric_secret
       echo "Creating dummy secret for openshift"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
       echo "Creating dummy secret for docker"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/docker_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/docker_secret
       echo "Creating dummy secret for aws"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/aws_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/aws_secret
       echo "Creating dummy secret for azure"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/azure_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/azure_secret
       echo "Creating dummy secret for kubernetes"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
       echo "Creating dummy secret for terraform"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
       echo "Creating dummy secret for puppet"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
       echo "Creating dummy secret for chef"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/ci-variables/chef_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/chef_secret
       echo "Creating dummy secret for jenkins"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://$fqdn_leader/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
+      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
       echo ""
     else
-      echo "Couldn't connect to leader DNS entry."
+      echo "Master is unhealthy"
       echo "Returning to Main Menu."
       press_enter
       function_menu
