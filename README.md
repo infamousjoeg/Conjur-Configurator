@@ -13,11 +13,13 @@ This script is intended to install CyberArk Conjur Enterprise Secrets Manager th
 1. Clone this repository(or download the zip package)
 2. chmod +x setup.sh
 3. run ./setup.sh
-4. Select option 1 to deploy a leader/standby container. 
+4. Select option 1 to deploy a leader/standby/follower container. 
 5. Select option 2 to configure the container. This will configure the container deployed with option 1 as a leader. An admin password will be randomly generated. SAVE THE PASSWORD!
-6. (Optional) Select option 3 to deploy the conjur cli container. The container will have the /policy folder mounted to /policy inside of the container.
+6. (Optional) Select option 3 to deploy the conjur cli container. The container will have the /policy folder mounted to /policy inside of the container. ***This only works with docker!!!***
 7. (Optional) Select option 4 to load a st of policies via rest.
 8. (Optional) Select option 5 to create a seed file for configuring a follower. 
+9. (Optional) Select option 6 to create a seed file for configuring a standby.
+10.(Optional) Select option 7 to create a k8s manifest that will deploy a follower in a cluster. Communication between leader and k8s cluster is required!
 9. Select option 9 to remove all containers and configuration file.
 
 ## Tested Operating Systems
