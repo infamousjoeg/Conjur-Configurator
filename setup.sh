@@ -609,7 +609,7 @@ cli_configure(){
     case "$container_command" in
       *podman* ) cli_container_id=$($container_command container run -d --name conjur-cli --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity) ;;
       *docker* ) cli_container_id=$($container_command container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity) ;;
-      * ) echo "Error with defining the continer command used on the system. Returning to the main menu." ; press_enter : function_menu ;;
+      * ) echo "Error with defining the continer command used on the system. Returning to the main menu." ; press_enter ; function_menu ;;
     esac
     update_config 'cli_container_id' $cli_container_id
     echo "Configuring CLI container to talk to leader."
