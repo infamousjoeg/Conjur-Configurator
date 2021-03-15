@@ -606,11 +606,12 @@ cli_configure(){
     echo ""
     cli_configure;
   else
-    echo "Standing up the CLI container."
-    cli_container_id=$($container_command container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity)
+    case "$container_command" in
+      *podman* ) cli_container_id=$($container_command container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity) ;;
+      *docker* ) cli_container_id=$($container_command container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity) ;;
+      * ) echo "Error with defining the continer command used on the system. Returning to the main menu." ; press_enter : function_menu ;;
+    esac
     update_config 'cli_container_id' $cli_container_id
-    #Init conjur session from CLI container
-
     echo "Configuring CLI container to talk to leader."
     $container_command exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_leader <<< yes &> /dev/null
     echo "Logging into leader as admin."
