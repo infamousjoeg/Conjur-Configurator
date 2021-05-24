@@ -10,6 +10,7 @@ kind: ServiceAccount
 metadata:
   name: conjur-cluster
   namespace: conjur
+# automountServiceAccountToken: false
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -72,6 +73,7 @@ spec:
         role: access
     spec:
       serviceAccountName: conjur-cluster
+      automountServiceAccountToken: false
       volumes:
       - name: seedfile
         emptyDir:
@@ -128,6 +130,10 @@ spec:
             value: "authn-k8s/prod"
           - name: SEEDFILE_DIR
             value: /tmp/seedfile
+          - name: KUBERNETES_SERVICE_HOST
+            value: ""
+          - name: KUBERNETES_SERVICE_PORT_HTTPS
+            value: ""
         ports:
           - containerPort: 443
             protocol: TCP
