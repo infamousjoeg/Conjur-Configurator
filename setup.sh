@@ -545,18 +545,15 @@ configure_leader_container(){
       if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
       then
         echo ""
-        echo "Exporting certificate to current directory"
+        echo "Exporting certificate to confiuration directory"
         if [ -z $fqdn_loadbalancer_leader_standby ];
         then
-          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_leader.pem .
-          mv $fqdn_leader.pem conjur-$company_name.pem
+          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_leader.pem $config_dir/conjur-$company_name.pem
         else
-          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem .
-          mv $fqdn_loadbalancer_leader_standby.pem conjur-$company_name.pem
+          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem $config_dir/conjur-$company_name.pem
         fi
-        cert=$(<conjur-$company_name.pem)
-        ssl_cert="${cert//$'\n'/\\\\n}"
-        update_config 'ssl_cert' "$ssl_cert"
+        ssl_cert=$(<$config_dir/conjur-$company_name.pem)
+        echo "$ssl_cert" >> $config_filepath
         echo "Exported certificate to $PWD/conjur-$company_name.pem"
         echo ""
         echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, and Azure authenticator."
