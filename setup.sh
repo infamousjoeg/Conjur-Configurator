@@ -500,7 +500,9 @@ pull_dockerhub(){
     echo "Can connect to dockerhub and will pull image directly"
         if [ $1 = "conjur_ent" ]
         then
-          conjur_image=captainfluffytoes/csme:latest
+          echo -n "What is the repo and image name to be pulled?: "
+          read dockerhub_conjur_image
+          conjur_image=$dockerhub_conjur_image
           echo "Pulling image: $conjur_image"
           $container_command pull $conjur_image &> /dev/null
           update_config 'conjur_image' $conjur_image
