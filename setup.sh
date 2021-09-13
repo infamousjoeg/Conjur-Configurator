@@ -173,6 +173,8 @@ delete_config(){
   echo "$(cat $config_filepath)"
   echo ""
   echo "Deleting configuration file in $config_filepath."
+  echo "Deleting previous certificate."
+  rm -f $config_dir/conjur-$company_name.pem
   echo "Removing in memory variables."
   conjur_image=
   cli_image=
@@ -552,9 +554,9 @@ configure_leader_container(){
         else
           $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem $config_dir/conjur-$company_name.pem
         fi
-        ssl_cert=$(<$config_dir/conjur-$company_name.pem)
         echo "$ssl_cert" >> $config_filepath
-        echo "Exported certificate to $PWD/conjur-$company_name.pem"
+        echo "Exported certificate to $config_dir/conjur-$company_name.pem"
+        update_config 'ssl_cert' $config_dir/conjur-$company_name.pem
         echo ""
         echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, and Azure authenticator."
         $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider &> /dev/null

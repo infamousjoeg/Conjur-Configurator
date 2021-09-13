@@ -52,7 +52,8 @@ metadata:
   name: conjur-ssl-certificate
   namespace: conjur
 data:
-  ssl-certificate: <<ssl_cert>>
+  ssl-certificate: |
+    <<ssl_cert>>  
 
 ---
 apiVersion: apps/v1
