@@ -228,46 +228,6 @@ update_config(){
 }
 
 #Function to create a k8s yaml to deploy a follower to kubernetes
-# create_k8s_yaml(){
-  # echo "This option will create a k8s manifest file and output it to the current directory."
-  # if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
-  # then
-  #   echo "Leader machine is healthy and available."
-  #   cp ./templates/k8s_template.yml "$company_name-k8s_follower.yaml"
-  #   if [[ "$OSTYPE" == "linux-gnu"* ]]
-  #   then
-  #     if [ -z $fqdn_loadbalancer_leader_standby ];
-  #     then
-  #       sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
-  #     else
-  #       sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
-  #     fi
-  #     sed -i'' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
-  #     sed -i'' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
-  #   elif [[ "$OSTYPE" == "darwin"* ]]
-  #   then
-  #     if [ -z $fqdn_loadbalancer_leader_standby ];
-  #     then
-  #       sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
-  #     else
-  #       sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
-  #     fi
-  #     sed -i '' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
-  #     sed -i '' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
-  #   else
-  #     echo "Unknown OS for using sed command. Configuration fill will not be updated! Returning to previous menu" 
-  #     press_enter
-  #     ${FUNCNAME[1]};
-  #   fi
-  #   echo "File has been created $PWD/$company_name-k8s_follower.yaml"
-  # else
-  #   echo "Leader not reporting as healthy. Is the leader running on this machine?"
-  #   echo "Returning to previous menu."
-  #   press_enter
-  #   ${FUNCNAME[1]};
-  # fi
-# }
-
 create_k8s_yaml(){
   echo "This option will create a k8s manifest file and output it to the current directory."
   if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
