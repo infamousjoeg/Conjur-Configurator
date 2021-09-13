@@ -228,37 +228,234 @@ update_config(){
 }
 
 #Function to create a k8s yaml to deploy a follower to kubernetes
+# create_k8s_yaml(){
+  # echo "This option will create a k8s manifest file and output it to the current directory."
+  # if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+  # then
+  #   echo "Leader machine is healthy and available."
+  #   cp ./templates/k8s_template.yml "$company_name-k8s_follower.yaml"
+  #   if [[ "$OSTYPE" == "linux-gnu"* ]]
+  #   then
+  #     if [ -z $fqdn_loadbalancer_leader_standby ];
+  #     then
+  #       sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
+  #     else
+  #       sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
+  #     fi
+  #     sed -i'' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
+  #     sed -i'' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
+  #   elif [[ "$OSTYPE" == "darwin"* ]]
+  #   then
+  #     if [ -z $fqdn_loadbalancer_leader_standby ];
+  #     then
+  #       sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
+  #     else
+  #       sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
+  #     fi
+  #     sed -i '' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
+  #     sed -i '' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
+  #   else
+  #     echo "Unknown OS for using sed command. Configuration fill will not be updated! Returning to previous menu" 
+  #     press_enter
+  #     ${FUNCNAME[1]};
+  #   fi
+  #   echo "File has been created $PWD/$company_name-k8s_follower.yaml"
+  # else
+  #   echo "Leader not reporting as healthy. Is the leader running on this machine?"
+  #   echo "Returning to previous menu."
+  #   press_enter
+  #   ${FUNCNAME[1]};
+  # fi
+# }
+
 create_k8s_yaml(){
   echo "This option will create a k8s manifest file and output it to the current directory."
   if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
   then
     echo "Leader machine is healthy and available."
-    cp ./templates/k8s_template.yml "$company_name-k8s_follower.yaml"
-    if [[ "$OSTYPE" == "linux-gnu"* ]]
-    then
-      if [ -z $fqdn_loadbalancer_leader_standby ];
-      then
-        sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
-      else
-        sed -i'' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
-      fi
-      sed -i'' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
-      sed -i'' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
-    elif [[ "$OSTYPE" == "darwin"* ]]
-    then
-      if [ -z $fqdn_loadbalancer_leader_standby ];
-      then
-        sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_leader~" "$company_name-k8s_follower.yaml" 
-      else
-        sed -i '' "s~<<fqdn_loadblalancer_leader>>~$fqdn_loadbalancer_leader_standby~" "$company_name-k8s_follower.yaml" 
-      fi
-      sed -i '' "s~<<company_name>>~$company_name~" "$company_name-k8s_follower.yaml" 
-      sed -i '' "s~<<ssl_cert>>~$ssl_cert~" "$company_name-k8s_follower.yaml"
-    else
-      echo "Unknown OS for using sed command. Configuration fill will not be updated! Returning to previous menu" 
-      press_enter
-      ${FUNCNAME[1]};
-    fi
+    echo ""
+    echo -n "What is the namespace name in k8s?: "
+    read namespace
+    ssl_cert=$(sed 's/^/    /' $config_dir/conjur-$company_name.pem)
+    cat <<EOF > $PWD/$company_name-k8s_follower.yaml
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $namespace
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: conjur-cluster
+  namespace: $namespace
+# automountServiceAccountToken: false
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: conjur-authenticator
+rules:
+- apiGroups: [""]
+  resources: ["pods", "serviceaccounts"]
+  verbs: ["get", "list"]
+- apiGroups: ["extensions"]
+  resources: [ "deployments", "replicasets"]
+  verbs: ["get", "list"]
+- apiGroups: ["apps"]
+  resources: [ "deployments", "statefulsets", "replicasets"]
+  verbs: ["get", "list"]
+- apiGroups: [""]
+  resources: ["pods/exec"]
+  verbs: ["create", "get"]
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: conjur-authenticator
+subjects:
+- kind: ServiceAccount
+  name: conjur-cluster
+  namespace: $namespace
+roleRef:
+  kind: ClusterRole
+  name: conjur-authenticator
+  apiGroup: rbac.authorization.k8s.io
+
+---  
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: conjur-ssl-certificate
+  namespace: $namespace
+data:
+  ssl-certificate: |
+$ssl_cert
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: conjur-access
+  namespace: $namespace
+  labels:
+    app: cyberark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: access
+  template:
+    metadata:
+      labels:
+        role: access
+    spec:
+      serviceAccountName: conjur-cluster
+      automountServiceAccountToken: false
+      volumes:
+      - name: seedfile
+        emptyDir:
+          medium: Memory
+      - name: conjur-token
+        emptyDir:
+          medium: Memory
+      initContainers:
+      - name: authenticator
+        image: cyberark/dap-seedfetcher:0.1.6
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CONJUR_SEED_FILE_URL
+            value: https://<<fqdn_loadblalancer_leader>>/configuration/$company_name/seed/follower
+          - name: SEEDFILE_DIR
+            value: /tmp/seedfile
+          - name: FOLLOWER_HOSTNAME
+            value: k8s-follower
+          - name: AUTHENTICATOR_ID
+            value: prod
+          - name: CONJUR_ACCOUNT
+            value: $company_name
+          - name: CONJUR_SSL_CERTIFICATE
+            valueFrom:
+              configMapKeyRef:
+                name: conjur-ssl-certificate
+                key: ssl-certificate
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CONJUR_AUTHN_LOGIN
+            value: "host/conjur/authn-k8s/prod/auto-configuration/conjur-follower-k8s"
+        volumeMounts:
+          - name: seedfile
+            mountPath: /tmp/seedfile
+          - name: conjur-token
+            mountPath: /run/conjur
+      containers:
+      - name: node
+        imagePullPolicy: IfNotPresent
+        image: $conjur_image
+        command: ["/tmp/seedfile/start-follower.sh"]
+        env:
+          - name: CONJUR_AUTHENTICATORS
+            value: "authn-k8s/prod"
+          - name: SEEDFILE_DIR
+            value: /tmp/seedfile
+          - name: KUBERNETES_SERVICE_HOST
+            value: ""
+          - name: KUBERNETES_SERVICE_PORT_HTTPS
+            value: ""
+        ports:
+          - containerPort: 443
+            protocol: TCP
+          - containerPort: 5432
+            protocol: TCP
+          - containerPort: 1999
+            protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 443
+            scheme: HTTPS
+          initialDelaySeconds: 15
+          timeoutSeconds: 5
+        volumeMounts:
+          - name: seedfile
+            mountPath: /tmp/seedfile
+            readOnly: true
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "250m"
+          limits:
+            memory: "2Gi"
+            cpu: "500m"
+            
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: access
+  namespace: $namespace
+spec:
+  ports:
+  - name: https
+    port: 443
+    targetPort: 443
+  selector:
+    role: access
+  type: ClusterIP
+EOF
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
   else
     echo "Leader not reporting as healthy. Is the leader running on this machine?"
@@ -554,7 +751,6 @@ configure_leader_container(){
         else
           $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem $config_dir/conjur-$company_name.pem
         fi
-        echo "$ssl_cert" >> $config_filepath
         echo "Exported certificate to $config_dir/conjur-$company_name.pem"
         update_config 'ssl_cert' $config_dir/conjur-$company_name.pem
         echo ""
