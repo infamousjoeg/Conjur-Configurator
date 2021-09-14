@@ -328,7 +328,7 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: CONJUR_SEED_FILE_URL
-            value: https://<<fqdn_loadblalancer_leader>>/configuration/$company_name/seed/follower
+            value: https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower
           - name: SEEDFILE_DIR
             value: /tmp/seedfile
           - name: FOLLOWER_HOSTNAME
