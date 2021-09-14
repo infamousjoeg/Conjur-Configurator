@@ -236,6 +236,9 @@ create_k8s_yaml(){
     echo ""
     echo -n "What is the namespace name in k8s?: "
     read namespace
+    echo -n "What service name do you want to use?: "
+    read service_name
+    seedfile_dir="/tmp/seedfile"
     ssl_cert=$(sed 's/^/    /' $config_dir/conjur-$company_name.pem)
     cat <<EOF > $PWD/$company_name-k8s_follower.yaml
 ---
@@ -250,7 +253,6 @@ kind: ServiceAccount
 metadata:
   name: conjur-cluster
   namespace: $namespace
-# automountServiceAccountToken: false
 
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -289,10 +291,17 @@ roleRef:
 kind: ConfigMap
 apiVersion: v1
 metadata:
-  name: conjur-ssl-certificate
+  name: conjur-follower-cm
   namespace: $namespace
 data:
-  ssl-certificate: |
+  CONJUR_ACCOUNT: $company_name
+  CONJUR_LEADER_APPLIANCE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
+  CONJUR_SEED_FILE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower"
+  CONJUR_AUTHN_LOGIN: "host/conjur/authn-k8s/prod/auto-configuration/conjur-follower-k8s"
+  SEEDFILE_DIR: "$seedfile_dir"
+  FOLLOWER_HOSTNAME: "k8s-follower"
+  AUTHENTICATOR_ID: "prod"
+  CONJUR_SSL_CERTIFICATE: |
 $ssl_cert
 
 ---
@@ -326,22 +335,10 @@ spec:
       - name: authenticator
         image: cyberark/dap-seedfetcher:0.1.6
         imagePullPolicy: IfNotPresent
+        envFrom:
+          - configMapRef:
+              name: conjur-follower-cm
         env:
-          - name: CONJUR_SEED_FILE_URL
-            value: https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower
-          - name: SEEDFILE_DIR
-            value: /tmp/seedfile
-          - name: FOLLOWER_HOSTNAME
-            value: k8s-follower
-          - name: AUTHENTICATOR_ID
-            value: prod
-          - name: CONJUR_ACCOUNT
-            value: $company_name
-          - name: CONJUR_SSL_CERTIFICATE
-            valueFrom:
-              configMapKeyRef:
-                name: conjur-ssl-certificate
-                key: ssl-certificate
           - name: MY_POD_NAME
             valueFrom:
               fieldRef:
@@ -354,23 +351,21 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: status.podIP
-          - name: CONJUR_AUTHN_LOGIN
-            value: "host/conjur/authn-k8s/prod/auto-configuration/conjur-follower-k8s"
         volumeMounts:
           - name: seedfile
-            mountPath: /tmp/seedfile
+            mountPath: $seedfile_dir
           - name: conjur-token
             mountPath: /run/conjur
       containers:
       - name: node
         imagePullPolicy: IfNotPresent
         image: $conjur_image
-        command: ["/tmp/seedfile/start-follower.sh"]
+        command: ["$seedfile_dir/start-follower.sh"]
         env:
           - name: CONJUR_AUTHENTICATORS
             value: "authn-k8s/prod"
           - name: SEEDFILE_DIR
-            value: /tmp/seedfile
+            value: $seedfile_dir
           - name: KUBERNETES_SERVICE_HOST
             value: ""
           - name: KUBERNETES_SERVICE_PORT_HTTPS
@@ -391,7 +386,7 @@ spec:
           timeoutSeconds: 5
         volumeMounts:
           - name: seedfile
-            mountPath: /tmp/seedfile
+            mountPath: $seedfile_dir
             readOnly: true
         resources:
           requests:
@@ -405,7 +400,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: access
+  name: $service_name
   namespace: $namespace
 spec:
   ports:
@@ -417,6 +412,19 @@ spec:
   type: ClusterIP
 EOF
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
+    echo "Please load the manifest into your cluster and populate the variable values for kubernetes/api-url, kubernetes/ca-cert, and kubernetes/service-account-token."
+    echo "Updating policy with the right namespace value of $namespace."
+    if [[ "$OSTYPE" == "linux-gnu"* ]]
+    then
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/kubernetes.yml
+    elif [[ "$OSTYPE" == "darwin"* ]]
+    then
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/kubernetes.yml
+    else
+      echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
+    fi
+    echo "Policy reload commencing:"
+    policy_load_rest
   else
     echo "Leader not reporting as healthy. Is the leader running on this machine?"
     echo "Returning to previous menu."
