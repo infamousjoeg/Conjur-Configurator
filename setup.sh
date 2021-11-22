@@ -299,7 +299,7 @@ data:
   CONJUR_SEED_FILE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower"
   CONJUR_AUTHN_LOGIN: "host/conjur/authn-k8s/prod/auto-configuration/conjur-follower-k8s"
   SEEDFILE_DIR: "$seedfile_dir"
-  FOLLOWER_HOSTNAME: "k8s-follower"
+  FOLLOWER_HOSTNAME: "$service_name"
   AUTHENTICATOR_ID: "prod"
   CONJUR_SSL_CERTIFICATE: |
 $ssl_cert
