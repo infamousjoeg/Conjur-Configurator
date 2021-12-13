@@ -31,7 +31,7 @@
     - !host
       id: go-app
       annotations:
-        authn-k8s/namespace: demoapps
+        authn-k8s/namespace: conjur
         authn-k8s/deployment: go-app
         authn-k8s/authentication-container-name: authenticator
 
