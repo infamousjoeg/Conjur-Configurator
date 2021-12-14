@@ -58,6 +58,7 @@ function_menu(){
       echo "    	5  -  Create seed package for Conjur Follower."
       echo "    	6  -  Create seed package for Conjur Standby."
       echo "    	7  -  Create K8s follower and application manifest."
+      echo "    	8  -  Enable JWT for Jenkins."
       echo "    	9  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
@@ -72,6 +73,7 @@ function_menu(){
         5 ) clear ; create_follower_seed ; press_enter ;;
         6 ) clear ; create_standby_seed ; press_enter ;;
         7 ) clear ; create_k8s_yaml ; press_enter ;;
+        8 ) clear ; jenkins_jwt ; press_enter ;;
         9 ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
@@ -505,7 +507,15 @@ spec:
             medium: Memory
 EOF
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
-    echo "Please load the manifest into your cluster and populate the variable values for kubernetes/api-url, kubernetes/ca-cert, and kubernetes/service-account-token."
+    echo "----------Instructions----------"
+    echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s_follower.yaml>."
+    echo "Once loaded, there are 3 variables in conjur that need information:"
+    echo ""
+    echo "conjur/authn-k8s/prod/kubernetes/api-url needs to have the api url so that the leader can communicate with the cluster's API."
+    echo "conjur/authn-k8s/prod/kubernetes/ca-cert needs to have the cluster cert so that the leader can send encrypted communication to the cluster's API."
+    echo "conjur/authn-k8s/prod/kubernetes/service-account-token needs to have a valid token fro the conjur-cluser service account."
+    echo "----------End----------"
+    echo ""
     echo "Updating policy with the right namespace value of $namespace."
     if [[ "$OSTYPE" == "linux-gnu"* ]]
     then
@@ -524,6 +534,10 @@ EOF
     press_enter
     ${FUNCNAME[1]};
   fi
+}
+
+jenkins_jwt(){
+  echo "This option enables jwt authentication for Jenkins"
 }
 
 #Function to create a follower seed file in the current directory for use by another conjur instance. The seed file will need to be copied to the other instance/machine.
