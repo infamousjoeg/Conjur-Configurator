@@ -57,7 +57,7 @@ function_menu(){
       echo "    	4  -  Configure POC Policies for Conjur."
       echo "    	5  -  Create seed package for Conjur Follower."
       echo "    	6  -  Create seed package for Conjur Standby."
-      echo "    	7  -  Create K8s follower manifest."
+      echo "    	7  -  Create K8s follower and application manifest."
       echo "    	9  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
@@ -305,6 +305,27 @@ data:
 $ssl_cert
 
 ---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: conjur-connect
+  namespace: $namespace
+  labels:
+    app.kubernetes.io/name: "conjur-connect-configmap"
+    app.kubernetes.io/instance: "conjur-default-configmap"
+    app.kubernetes.io/part-of: "conjur-config"
+    conjur.org/name: "conjur-connect-configmap"
+data:
+  CONJUR_ACCOUNT: $company_name
+  CONJUR_APPLIANCE_URL: "https://$service_name.$namespace.svc.cluster.local"
+  CONJUR_AUTHN_URL: "https://$service_name.$namespace.svc.cluster.local/authn-k8s/prod"
+  CONJUR_AUTHENTICATOR_ID: "prod"
+  CONJUR_AUTHN_LOGIN: "host/conjur/authn-k8s/prod/apps/go-app"
+  CONJUR_VERSION: "5"
+  CONJUR_SSL_CERTIFICATE: |- 
+$ssl_cert
+
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -333,7 +354,7 @@ spec:
           medium: Memory
       initContainers:
       - name: authenticator
-        image: cyberark/dap-seedfetcher:0.1.6
+        image: cyberark/dap-seedfetcher:latest
         imagePullPolicy: IfNotPresent
         envFrom:
           - configMapRef:
@@ -410,6 +431,78 @@ spec:
   selector:
     role: access
   type: ClusterIP
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: go-app-account
+  namespace: $namespace
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: goapp
+  namespace: $namespace
+  labels:
+    app: go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: demo
+      app: go
+  template:
+    metadata:
+      labels:
+        role: demo
+        app: go
+    spec:
+      serviceAccountName: go-app-account
+      containers:
+      - name: authenticator
+        image: cyberark/conjur-authn-k8s-client
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - configMapRef:
+              name: conjur-connect
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+      - name: goapp
+        image: captainfluffytoes/go_app:evan
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - configMapRef:
+              name: conjur-connect
+        env:
+          - name: CONJUR_AUTHN_TOKEN_FILE
+            value: /run/conjur/access-token
+          - name: CONJUR_USER_OBJECT
+            value: secrets/backend/postgres_user
+          - name: CONJUR_PASS_OBJECT
+            value: secrets/backend/postgres_pwd
+        volumeMounts:
+          - mountPath: /run/conjur
+            name: conjur-access-token
+      volumes:
+        - name: conjur-access-token
+          emptyDir:
+            medium: Memory
 EOF
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
     echo "Please load the manifest into your cluster and populate the variable values for kubernetes/api-url, kubernetes/ca-cert, and kubernetes/service-account-token."
