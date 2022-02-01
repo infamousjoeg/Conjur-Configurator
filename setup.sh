@@ -813,9 +813,9 @@ configure_leader_container(){
       echo "Configuring Conjur Leader container using company name: $company_name"
       if [ -z $fqdn_loadbalancer_leader_standby ];
       then
-        $container_command exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_leader --admin-password $admin_password $company_name
+        $container_command exec $leader_container_id evoke configure master --debug --accept-eula --hostname $fqdn_leader --admin-password $admin_password $company_name
       else
-        $container_command exec $leader_container_id evoke configure master --accept-eula --hostname $fqdn_loadbalancer_leader_standby --master-altnames $fqdn_leader --admin-password $admin_password $company_name
+        $container_command exec $leader_container_id evoke configure master --debug --accept-eula --hostname $fqdn_loadbalancer_leader_standby --master-altnames $fqdn_leader --admin-password $admin_password $company_name
       fi
       echo "Checking to make sure container has come up successfully"
       if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
@@ -831,8 +831,8 @@ configure_leader_container(){
         echo "Exported certificate to $config_dir/conjur-$company_name.pem"
         update_config 'ssl_cert' $config_dir/conjur-$company_name.pem
         echo ""
-        echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, and Azure authenticator."
-        $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider &> /dev/null
+        echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, Azure authenticator, and JWT for Jenkins."
+        $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider,authn-jwt/jenkins &> /dev/null
         $container_command exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
         echo ""
         echo "Setting log level to debug"
@@ -903,11 +903,14 @@ policy_load_rest(){
       echo "Verified that the admin password is correct."
       press_enter
       policy_load_rest
+      echo "Press Enter to return to the main menu."
+      press_enter
+      ${FUNCNAME[1]};
     else
-      echo "Admin password is incorrect please re-enter."
+      echo "Admin password is incorrect. Returning to main menu."
       unset admin_password
       press_enter
-      policy_load_rest
+      ${FUNCNAME[1]};
     fi
     policy_load_rest
   else
@@ -928,7 +931,9 @@ policy_load_rest(){
       echo "Loading Kubernetes policy."
       kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/conjur/authn-k8s/prod)
       echo "Loading OIDC policy."
-      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/conjur/authn-oidc/provider)
+      oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/conjur/authn-oidc/provider)
+      echo "Loading JWT policy."
+      jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/jenkins)
       echo "Loading Seed Generation policy."
       seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/conjur/seed-generation)
       echo "Loading Tanzu policy."
@@ -949,6 +954,9 @@ policy_load_rest(){
       echo ""
       echo "Here are the hosts created for Azure apps:"
       echo $azure_policy_output
+      echo ""
+      echo "Here are the hosts created for JWT apps:"
+      echo $jwt_policy_output
       echo ""
       echo "Creating dummy secret for ansible"
       curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
