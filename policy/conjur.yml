@@ -12,3 +12,9 @@
 
 - !policy
   id: authn-azure/prod
+
+- !policy
+  id: authn-jwt/jenkins
+
+- !policy
+  id: authn-jwt/gitlab

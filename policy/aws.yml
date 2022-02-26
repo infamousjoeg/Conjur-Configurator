@@ -12,7 +12,7 @@
   body:
     - !layer
 
-    #- !host <prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>
+    - !host <prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>
 
     #- !grant
     #  role: !layer

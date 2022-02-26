@@ -1,6 +1,6 @@
 ---
 - !policy
-  id: hosts
+  id: tools
   body:
     - !host jenkins
     - !host ansible
@@ -16,7 +16,7 @@
 
     - !grant
       role: !layer
-      member: !host /apps/hosts/jenkins
+      member: !host /apps/tools/jenkins
 
 - !policy
   id: cd
@@ -28,11 +28,11 @@
 
     - !grant
       role: !layer
-      member: !host /apps/hosts/ansible
+      member: !host /apps/tools/ansible
 
     - !grant
       role: !layer
-      member: !host /apps/hosts/terraform
+      member: !host /apps/tools/terraform
 
 - !group ci
 

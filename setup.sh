@@ -495,9 +495,9 @@ spec:
           - name: CONJUR_AUTHN_TOKEN_FILE
             value: /run/conjur/access-token
           - name: CONJUR_USER_OBJECT
-            value: secrets/backend/postgres_user
+            value: secrets/ci-variables/puppet_secret
           - name: CONJUR_PASS_OBJECT
-            value: secrets/backend/postgres_pwd
+            value: secrets/cd-variables/kubernetes_secret
         volumeMounts:
           - mountPath: /run/conjur
             name: conjur-access-token
@@ -528,11 +528,13 @@ EOF
     fi
     echo "Policy reload commencing:"
     policy_load_rest
+    echo "Setting internal CA and Key:"
+    $container_command exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
   else
     echo "Leader not reporting as healthy. Is the leader running on this machine?"
-    echo "Returning to previous menu."
+    echo "Returning to main menu."
     press_enter
-    ${FUNCNAME[1]};
+    function_menu;
   fi
 }
 
@@ -905,12 +907,12 @@ policy_load_rest(){
       policy_load_rest
       echo "Press Enter to return to the main menu."
       press_enter
-      ${FUNCNAME[1]};
+      function_menu;
     else
       echo "Admin password is incorrect. Returning to main menu."
       unset admin_password
       press_enter
-      ${FUNCNAME[1]};
+      function_menu;
     fi
     policy_load_rest
   else
@@ -929,11 +931,13 @@ policy_load_rest(){
       echo "Loading IAM policy."
       conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/conjur/authn-iam/prod)
       echo "Loading Kubernetes policy."
-      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/conjur/authn-k8s/prod)
+      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/conjur/authn-k8s/prod)
       echo "Loading OIDC policy."
       oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/conjur/authn-oidc/provider)
-      echo "Loading JWT policy."
-      jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/jenkins)
+      echo "Loading Jenkins JWT policy."
+      jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/jenkins)
+      echo "Loading GitLab JWT policy."
+      gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/gitlab.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/gitlab)
       echo "Loading Seed Generation policy."
       seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/conjur/seed-generation)
       echo "Loading Tanzu policy."
@@ -956,7 +960,8 @@ policy_load_rest(){
       echo $azure_policy_output
       echo ""
       echo "Here are the hosts created for JWT apps:"
-      echo $jwt_policy_output
+      echo $jenkins_jwt_policy_output
+      echo $gitlab_jwt_policy_output
       echo ""
       echo "Creating dummy secret for ansible"
       curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
