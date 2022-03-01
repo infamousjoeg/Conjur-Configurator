@@ -57,9 +57,10 @@ function_menu(){
       echo "    	4  -  Configure POC Policies for Conjur."
       echo "    	5  -  Create seed package for Conjur Follower."
       echo "    	6  -  Create seed package for Conjur Standby."
-      echo "    	7  -  Create K8s follower and application manifest."
+      echo "    	7  -  Create K8s follower and applications manifest."
       echo "    	8  -  Enable JWT for Jenkins."
-      echo "    	9  -  Remove Conjur containers and configuration files."
+      echo "    	9  -  Enable JWT for Gitlab."
+      echo "    	A  -  Remove Conjur containers and configuration files."
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
@@ -74,7 +75,8 @@ function_menu(){
         6 ) clear ; create_standby_seed ; press_enter ;;
         7 ) clear ; create_k8s_yaml ; press_enter ;;
         8 ) clear ; jenkins_jwt ; press_enter ;;
-        9 ) clear ; remove_container ; press_enter ;;
+        9 ) clear ; gitlab_jwt ; press_enter ;;
+        A ) clear ; remove_container ; press_enter ;;
         0 ) clear ; exit ;;
         * ) clear ; incorrect_selection ; press_enter ;;
       esac
@@ -651,6 +653,105 @@ EOF
 
 jenkins_jwt(){
   echo "This option enables jwt authentication for Jenkins"
+  echo -n "Please enter the hostname of your Jenkins instance (in the format https://jenkins.com): "
+  read jenkins_hostname
+  echo "Loading Jenkins policy values"
+  admin_pass
+  echo "Getting API KEY"
+  api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+  echo "Getting Auth token"
+  auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+  echo "Loading JWKS value."
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname/jwtauth/conjur-jwk-set" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/jwks-uri
+  echo "Loading identity path"
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/jenkins/cluster" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/identity-path
+  echo "Loading issuer"
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/issuer
+  echo "Loading token app property"
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "identity" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/token-app-property
+  echo ""
+  echo "----------Instructions----------"
+  echo "Please fill in the Jenkins plugin configuration with this information:"
+  echo "Conjur Appliance"
+  echo "Account - $company_name"
+  echo "Appliance URL - https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
+  echo "Conjur Auth Credential - Leave Blank"
+  echo "Conjur SSL Certificate - Import Cert directly into Jenkins keystore"
+  echo ""
+  echo "Conjur JWT Authentication"
+  echo "Enable JWT Key Set endpoint? - checked"
+  echo "Auth WebServiceID - authn-jwt/jenkins"
+  echo "JWT Audience - https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
+  echo "Signing Key Lifetime In Minutes - 5"
+  echo "JWT Token Duration In Seconds - 60"
+  echo "Enable Context Aware Credential Stores? - checked"
+  echo "Identity Field Name - identity"
+  echo "Identity Format Fields - jenkins_name"
+  echo "Identity Fields Separator - \"-\""
+  echo ""
+  echo "Create a pipeline job with the name - Pipeline1"
+  echo "----------End----------"
+}
+
+gitlab_jwt(){
+  echo "This option enables jwt authentication for Gitlab"
+  echo -n "Please enter the hostname of your Gitlab instance (in the format https://gitlab.com): "
+  read gitlab_hostname
+  echo "Loading Gitlab policy values"
+  admin_pass
+  echo "Getting API KEY"
+  api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+  echo "Getting Auth token"
+  auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+  echo "Loading JWKS value."
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/jwks-uri
+  echo "Loading identity path"
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/gitlab/cluster" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/identity-path
+  echo "Loading issuer"
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/issuer
+  echo "Loading token app property"
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "namespace_path" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/token-app-property
+  echo ""
+  echo "----------Instructions----------"
+  echo "Please create a group in Gitlab - gitlab_dev_team_1"
+  echo "Please then create a repository called - Gitlab_job_1"
+  echo "Save bash.gitlab-ci.yml to the root of the Gitlab_job_1 repository"
+  echo "Exporting bash.gitlab-ci.yml to this $PWD/bash.gitlab-ci.yml."
+  conjur_address=$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)
+  cat <<EOF > $PWD/bash.gitlab-ci.yml
+test1:
+  stage: test
+  script:
+    - echo "Authenticating to Conjur"
+    - TOKEN=\$(curl -k --request POST 'https://$conjur_address/authn-jwt/gitlab/cyberark/authenticate' --header 'Content-Type:application/x-www-form-urlencoded' --header "Accept-Encoding:base64" --data-urlencode "jwt=$CI_JOB_JWT")
+    - echo "Here is the access token:"
+    - echo \$TOKEN
+    - echo ""
+    - echo "Fetching secret"
+    - SECRET=\$(curl -k --header "Authorization:Token token=\"\$TOKEN\"" -X GET https://$conjur_address/secrets/cyberark/variable/secrets/cd-variables/azure_secret)
+    - echo "The secret value is \$SECRET"
+EOF
+  echo "----------End----------"
+}
+
+admin_pass(){
+  if [ -z $admin_password ]
+  then
+    echo -n "Enter your admin password: "
+    read -s admin_password
+    echo ""
+    output=$(curl -sIk -o /dev/null -w "%{http_code}" --user admin:$admin_password https://localhost/authn/cyberark/login)
+    if $(echo $output | grep "200" > /dev/null)
+    then
+      echo "Verified that the admin password is correct."
+      press_enter
+    else
+      echo "Admin password is incorrect. Press Enter to try again."
+      unset admin_password
+      press_enter
+      admin_pass
+    fi
+  fi
 }
 
 #Function to create a follower seed file in the current directory for use by another conjur instance. The seed file will need to be copied to the other instance/machine.
@@ -1005,104 +1106,82 @@ cli_configure(){
 }
 
 policy_load_rest(){
-  if [ -z $admin_password ]
+  admin_pass
+  if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
   then
-    echo -n "Enter your admin password: "
-    read -s admin_password
+    echo "Getting API KEY"
+    api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+    echo "Getting Auth token"
+    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+    echo "Loading root policy."
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
+    echo "Loading app policy."
+    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/apps.yml)" https://localhost/policies/$company_name/policy/apps)
+    echo "Loading Conjur policy."
+    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/conjur.yml)" https://localhost/policies/$company_name/policy/conjur)
+    echo "Loading IAM policy."
+    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/conjur/authn-iam/prod)
+    echo "Loading Kubernetes policy."
+    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/conjur/authn-k8s/prod)
+    echo "Loading OIDC policy."
+    oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/conjur/authn-oidc/provider)
+    echo "Loading Jenkins JWT policy."
+    jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/jenkins)
+    echo "Loading GitLab JWT policy."
+    gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/gitlab.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/gitlab)
+    echo "Loading Seed Generation policy."
+    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/conjur/seed-generation)
+    echo "Loading Tanzu policy."
+    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/tanzu.yml)" https://localhost/policies/$company_name/policy/tanzu)
+    echo "Loading Azure policy."
+    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/azure.yml)" https://localhost/policies/$company_name/policy/conjur/authn-azure/prod)
+    echo "loading secrets policy."
+    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/secrets)
     echo ""
-    output=$(curl -sIk -o /dev/null -w "%{http_code}" --user admin:$admin_password https://localhost/authn/cyberark/login)
-    if $(echo $output | grep "200" > /dev/null)
-    then
-      echo "Verified that the admin password is correct."
-      press_enter
-      policy_load_rest
-      echo "Press Enter to return to the main menu."
-      press_enter
-      function_menu;
-    else
-      echo "Admin password is incorrect. Returning to main menu."
-      unset admin_password
-      press_enter
-      function_menu;
-    fi
-    policy_load_rest
+    echo "Here are the users that were created:"
+    echo $root_policy_output
+    echo ""
+    echo "Here are the hosts created for CI/CD apps:"
+    echo $app_policy_output
+    echo ""
+    echo "Here are the hosts created for Tanzu apps:"
+    echo $tanzu_policy_output
+    echo ""
+    echo "Here are the hosts created for Azure apps:"
+    echo $azure_policy_output
+    echo ""
+    echo "Here are the hosts created for JWT apps:"
+    echo $jenkins_jwt_policy_output
+    echo $gitlab_jwt_policy_output
+    echo ""
+    echo "Creating dummy secret for ansible"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
+    echo "Creating dummy secret for electric flow"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/electric_secret
+    echo "Creating dummy secret for openshift"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
+    echo "Creating dummy secret for docker"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/docker_secret
+    echo "Creating dummy secret for aws"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/aws_secret
+    echo "Creating dummy secret for azure"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/azure_secret
+    echo "Creating dummy secret for kubernetes"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
+    echo "Creating dummy secret for terraform"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
+    echo "Creating dummy secret for puppet"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
+    echo "Creating dummy secret for chef"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/chef_secret
+    echo "Creating dummy secret for jenkins"
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
+    echo ""
   else
-    if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
-    then
-      echo "Getting API KEY"
-      api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
-      echo "Getting Auth token"
-      auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
-      echo "Loading root policy."
-      root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
-      echo "Loading app policy."
-      app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/apps.yml)" https://localhost/policies/$company_name/policy/apps)
-      echo "Loading Conjur policy."
-      conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/conjur.yml)" https://localhost/policies/$company_name/policy/conjur)
-      echo "Loading IAM policy."
-      conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/conjur/authn-iam/prod)
-      echo "Loading Kubernetes policy."
-      kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/conjur/authn-k8s/prod)
-      echo "Loading OIDC policy."
-      oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/conjur/authn-oidc/provider)
-      echo "Loading Jenkins JWT policy."
-      jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/jenkins)
-      echo "Loading GitLab JWT policy."
-      gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/gitlab.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/gitlab)
-      echo "Loading Seed Generation policy."
-      seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/conjur/seed-generation)
-      echo "Loading Tanzu policy."
-      tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/tanzu.yml)" https://localhost/policies/$company_name/policy/tanzu)
-      echo "Loading Azure policy."
-      azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/azure.yml)" https://localhost/policies/$company_name/policy/conjur/authn-azure/prod)
-      echo "loading secrets policy."
-      secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/secrets)
-      echo ""
-      echo "Here are the users that were created:"
-      echo $root_policy_output
-      echo ""
-      echo "Here are the hosts created for CI/CD apps:"
-      echo $app_policy_output
-      echo ""
-      echo "Here are the hosts created for Tanzu apps:"
-      echo $tanzu_policy_output
-      echo ""
-      echo "Here are the hosts created for Azure apps:"
-      echo $azure_policy_output
-      echo ""
-      echo "Here are the hosts created for JWT apps:"
-      echo $jenkins_jwt_policy_output
-      echo $gitlab_jwt_policy_output
-      echo ""
-      echo "Creating dummy secret for ansible"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
-      echo "Creating dummy secret for electric flow"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/electric_secret
-      echo "Creating dummy secret for openshift"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
-      echo "Creating dummy secret for docker"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/docker_secret
-      echo "Creating dummy secret for aws"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/aws_secret
-      echo "Creating dummy secret for azure"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/azure_secret
-      echo "Creating dummy secret for kubernetes"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
-      echo "Creating dummy secret for terraform"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
-      echo "Creating dummy secret for puppet"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
-      echo "Creating dummy secret for chef"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/chef_secret
-      echo "Creating dummy secret for jenkins"
-      curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
-      echo ""
-    else
-      echo "Master is unhealthy"
-      echo "Returning to Main Menu."
-      press_enter
-      function_menu
-    fi
+    echo "Master is unhealthy"
+    echo "Returning to Main Menu."
+    press_enter
+    function_menu
   fi
 }
 
