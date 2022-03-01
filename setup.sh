@@ -322,7 +322,6 @@ data:
   CONJUR_APPLIANCE_URL: "https://$service_name.$namespace.svc.cluster.local"
   CONJUR_AUTHN_URL: "https://$service_name.$namespace.svc.cluster.local/authn-k8s/prod"
   CONJUR_AUTHENTICATOR_ID: "prod"
-  CONJUR_AUTHN_LOGIN: "host/conjur/authn-k8s/prod/apps/go-app"
   CONJUR_VERSION: "5"
   CONJUR_SSL_CERTIFICATE: |- 
 $ssl_cert
@@ -470,6 +469,8 @@ spec:
           - configMapRef:
               name: conjur-connect
         env:
+          - name: CONJUR_AUTHN_LOGIN
+            value: "host/conjur/authn-k8s/prod/apps/go-app"
           - name: MY_POD_NAME
             valueFrom:
               fieldRef:
@@ -505,6 +506,116 @@ spec:
         - name: conjur-access-token
           emptyDir:
             medium: Memory
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+  namespace: $namespace
+type: Opaque
+data:
+  DBName:   bXlhcHBEQg==
+stringData:
+  conjur-map: |-   
+    username: secrets/ci-variables/puppet_secret
+    password: secrets/cd-variables/kubernetes_secret
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8ssecrets-account
+  namespace: $namespace
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: secrets-access
+  namespace: $namespace
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: [ "get", "update"]
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  namespace: $namespace
+  name: secrets-access-binding
+subjects:
+  - kind: ServiceAccount
+    namespace: $namespace
+    name: k8ssecrets-account
+roleRef:
+  kind: ClusterRole
+  apiGroup: rbac.authorization.k8s.io
+  name: secrets-access
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: k8ssecretprovider
+  namespace: $namespace
+  labels:
+    app: k8ssecrets
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: demo
+      app: k8ssecrets
+  template:
+    metadata:
+      labels:
+        role: demo
+        app: k8ssecrets
+    spec:
+      serviceAccountName: k8ssecrets-account
+      initContainers:
+      - name: cyberark-secrets-provider
+        image: cyberark/secrets-provider-for-k8s:latest
+        imagePullPolicy: IfNotPresent
+        envFrom:
+          - configMapRef:
+              name: conjur-connect
+        env:
+          - name: MY_POD_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.name
+          - name: MY_POD_NAMESPACE
+            valueFrom:
+              fieldRef:
+                fieldPath: metadata.namespace
+          - name: MY_POD_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+          - name: CONJUR_AUTHN_LOGIN
+            value: "host/conjur/authn-k8s/prod/apps/secrets-provider"
+          - name: SECRETS_DESTINATION
+            value: k8s_secrets
+          - name: K8S_SECRETS
+            value: db-credentials
+      containers:
+      - name: k8s-app
+        image: centos
+        command: ["sleep","infinity"]
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: DB_USERNAME
+            valueFrom:
+              secretKeyRef:
+                name: db-credentials
+                key: username
+          - name: DB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: db-credentials
+                key: password
 EOF
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
     echo "----------Instructions----------"
