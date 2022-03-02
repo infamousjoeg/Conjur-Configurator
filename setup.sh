@@ -620,15 +620,6 @@ spec:
                 key: password
 EOF
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
-    echo "----------Instructions----------"
-    echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s_follower.yaml>."
-    echo "Once loaded, there are 3 variables in conjur that need information:"
-    echo ""
-    echo "conjur/authn-k8s/prod/kubernetes/api-url needs to have the api url so that the leader can communicate with the cluster's API."
-    echo "conjur/authn-k8s/prod/kubernetes/ca-cert needs to have the cluster cert so that the leader can send encrypted communication to the cluster's API."
-    echo "conjur/authn-k8s/prod/kubernetes/service-account-token needs to have a valid token fro the conjur-cluser service account."
-    echo "----------End----------"
-    echo ""
     echo "Updating policy with the right namespace value of $namespace."
     if [[ "$OSTYPE" == "linux-gnu"* ]]
     then
@@ -639,10 +630,34 @@ EOF
     else
       echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
     fi
-    echo "Policy reload commencing:"
-    policy_load_rest
+    admin_pass
+    policy_load_rest &> /dev/null
     echo "Setting internal CA and Key:"
-    $container_command exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
+    $container_command exec $leader_container_id bash -c "openssl genrsa -out ca.key 2048" &> /dev/null
+    CONFIG="
+[ req ]
+distinguished_name = dn
+x509_extensions = v3_ca
+[ dn ]
+[ v3_ca ]
+basicConstraints = critical,CA:TRUE
+subjectKeyIdentifier   = hash
+authorityKeyIdentifier = keyid:always,issuer:always
+"
+    $container_command exec $leader_container_id bash -c "openssl req -x509 -new -nodes -key ca.key -sha1 -days 3650 -set_serial 0x0 -out ca.cert -subj "/CN=conjur.authn-k8s.prod/OU=Conjur Kubernetes CA/O=$company_name" -config <(echo "$CONFIG")" &> /dev/null
+    api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.key")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/prod/ca/key
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.cert")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/prod/ca/cert
+    echo "----------Instructions----------"
+    echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s_follower.yaml>."
+    echo "Once loaded, there are 3 variables in conjur that need information:"
+    echo ""
+    echo "conjur/authn-k8s/prod/kubernetes/api-url needs to have the api url so that the leader can communicate with the cluster's API."
+    echo "conjur/authn-k8s/prod/kubernetes/ca-cert needs to have the cluster cert so that the leader can send encrypted communication to the cluster's API."
+    echo "conjur/authn-k8s/prod/kubernetes/service-account-token needs to have a valid token fro the conjur-cluser service account."
+    echo "----------End----------"
+    echo ""
   else
     echo "Leader not reporting as healthy. Is the leader running on this machine?"
     echo "Returning to main menu."
@@ -945,6 +960,17 @@ deploy_leader_container(){
       update_config 'fqdn_leader' $fqdn_leader
       echo "Creating local folders."
       mkdir -p $config_dir/{security,configuration,backup,seeds,logs}
+      cat <<EOF > $config_dir/conjur.yml
+#List of authenticators enabled for this node
+authenticators: 
+  - authn-k8s/prod
+  - authn-iam/prod
+  - authn-azure/prod
+  - authn-oidc/provider
+  - authn-jwt/jenkins
+  - authn-jwt/gitlab
+  - authn
+EOF
       echo "Creating Conjur $container_command network."
       $container_command network create conjur &> /dev/null
       echo "Starting container."
@@ -958,6 +984,7 @@ deploy_leader_container(){
       --publish "444:444" \
       --publish "5432:5432" \
       --publish "1999:1999" \
+      --volume $config_dir/conjur.yml:/etc/conjur/config/conjur.yml:Z \
       --volume $config_dir/configuration:/opt/cyberark/dap/configuration:Z \
       --volume $config_dir/security:/opt/cyberark/dap/security:Z \
       --volume $config_dir/backup:/opt/conjur/backup:Z \
@@ -1044,10 +1071,9 @@ configure_leader_container(){
         fi
         echo "Exported certificate to $config_dir/conjur-$company_name.pem"
         update_config 'ssl_cert' $config_dir/conjur-$company_name.pem
-        echo ""
-        echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, Azure authenticator, and JWT for Jenkins."
-        $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider,authn-jwt/jenkins &> /dev/null
-        $container_command exec $leader_container_id chpst -u conjur conjur-plugin-service possum rake authn_k8s:ca_init["conjur/authn-k8s/prod"] &> /dev/null
+        # echo ""
+        # echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, Azure authenticator, and JWT for Jenkins."
+        # $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider,authn-jwt/jenkins &> /dev/null
         echo ""
         echo "Setting log level to debug"
         $container_command exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
