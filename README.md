@@ -65,10 +65,12 @@ The desired result of this option is to load in some basic conjur policies into 
 3. conjur
 4. conjur/authn-iam/prod
 5. conjur/authn-k8s/prod
-6. conjur/seed-generation
-7. conjur/authn-azure/prod
-8. conjur/authn-oidc/provider
-9. tanzu
+6. conjur/authn-oidc/provider
+7. conjur/authn-jwt/jenkins
+8. conjur/authn-jwt/gitlab
+9. conjur/seed-generation
+10. tanzu
+11. conjur/authn-azure/prod
 10. secrets
 
 All of the policy files will are contained in the policy directory in this repo. The loading is accomplished via REST through the menu option. There is a cli container that is spun up and connected to the leader instance. The policy files directory is mounted to /policy inside of the cli container. This allows for easy loading of policies without the need to copy files into the container. This option can be use to reload policies after changes. 
@@ -80,9 +82,15 @@ This option will create a seed file for a follower. You will be prompted for the
 This option will create a seed file for a standby. You will be prompted for the standby's DNS name. The seed file is outputted to the current directory named 'standby_seed.tar'.
 
 ### Option 7
-This option will create a yaml file to deploy a follower and demo application inside of k8s. The manifest file will be in the current directry with the company name. This manifest has both the follower and a demo application.  
+This option will create a yaml file to deploy a follower and demo application inside of k8s. The manifest file will be in the current directry with the company name. This manifest has both the follower and a demo application.
+
+### Option 8
+This option will confiure the jenkins JWT policy. You will be prompted for information about your jenkins environment so that values can be populated corrected. There will also be instructions displayed on the screen on how to configure the conjur plugin in Jenkins. 
 
 ### Option 9
+This option will configure the Gitlab JWT Policy. You will be promped for DNS information about your gitlab instance. There will be instructions printed on the screen as well as a sample bash.gitlab-ci.yml fie exported to the current directory. 
+
+### Option A
 This option will remove all containers stood up by this program. It will also show all of the configuration file settings before deleting the file. The folder containing the configuration (file $HOME/.config/cybr/) is NOT deleted in case there are other entries. The mounted folders to the container image is also retained in case there are files you'd like to review. 
 
 ## Local Files
