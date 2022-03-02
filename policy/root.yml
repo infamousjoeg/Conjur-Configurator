@@ -35,19 +35,3 @@
     - read
   resources:
     - !policy root
-
-- !policy
-  id: apps
-  owner: !group admins
-
-- !policy
-  id: conjur
-  owner: !group admins
-
-- !policy
-  id: tanzu
-  owner: !group admins
-
-- !policy
-  id: secrets
-  owner: !group admins

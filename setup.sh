@@ -1140,29 +1140,27 @@ policy_load_rest(){
     echo "Getting Auth token"
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
     echo "Loading root policy."
-    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading app policy."
-    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/apps.yml)" https://localhost/policies/$company_name/policy/apps)
-    echo "Loading Conjur policy."
-    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/conjur.yml)" https://localhost/policies/$company_name/policy/conjur)
+    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading IAM policy."
-    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/conjur/authn-iam/prod)
+    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading Kubernetes policy."
-    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/conjur/authn-k8s/prod)
+    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading OIDC policy."
-    oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/conjur/authn-oidc/provider)
+    oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading Jenkins JWT policy."
-    jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/jenkins)
+    jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading GitLab JWT policy."
-    gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/gitlab.yml)" https://localhost/policies/$company_name/policy/conjur/authn-jwt/gitlab)
+    gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/gitlab.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading Seed Generation policy."
-    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/conjur/seed-generation)
+    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading Tanzu policy."
-    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/tanzu.yml)" https://localhost/policies/$company_name/policy/tanzu)
+    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://localhost/policies/$company_name/policy/root)
     echo "Loading Azure policy."
-    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/azure.yml)" https://localhost/policies/$company_name/policy/conjur/authn-azure/prod)
+    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading secrets policy."
-    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/secrets)
+    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Here are the users that were created:"
     echo $root_policy_output

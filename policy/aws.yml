@@ -1,26 +1,29 @@
-- !webservice
-
-- !group clients
-
-- !permit
-  role: !group clients
-  privilege: [ read, authenticate ]
-  resource: !webservice
-
 - !policy
-  id: apps
+  id: conjur/authn-iam/prod
   body:
-    - !layer
+  - !webservice
 
-    # - !host <prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>
+  - !group clients
 
-    #- !grant
-    #  role: !layer
-    #  member: !host <prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>
+  - !permit
+    role: !group clients
+    privilege: [ read, authenticate ]
+    resource: !webservice
 
-- !grant
-  role: !group clients
-  member: !layer /conjur/authn-iam/prod/apps
+  - !policy
+    id: apps
+    body:
+      - !layer
+
+      # - !host <prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>
+
+      #- !grant
+      #  role: !layer
+      #  member: !host <prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>
+
+  - !grant
+    role: !group clients
+    member: !layer /conjur/authn-iam/prod/apps
 
 
-#Authentication as the host from the application is going to be : host/conjur/authn-iam/prod/apps/<prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>
+  #Authentication as the host from the application is going to be : host/conjur/authn-iam/prod/apps/<prefix/namespace followed by the AWS account ID followed by the name of the AWS IAM role>

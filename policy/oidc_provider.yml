@@ -1,24 +1,27 @@
-- !webservice
-  annotations:
-    description: Authentication service for provider based on OpenID Connect.
+- !policy
+  id: conjur/authn-oidc/provider
+  body:
+  - !webservice
+    annotations:
+      description: Authentication service for provider based on OpenID Connect.
 
-- !variable
-  id: provider-uri
+  - !variable
+    id: provider-uri
 
-- !variable
-  id: id-token-user-property
+  - !variable
+    id: id-token-user-property
 
-- !group
-  id: users
-  annotations:
-    description: Group of users who can authenticate using the authn-oidc/<service-id> authenticator
+  - !group
+    id: users
+    annotations:
+      description: Group of users who can authenticate using the authn-oidc/<service-id> authenticator
 
-- !permit
-  role: !group users
-  privilege: [ read, authenticate ]
-  resource: !webservice
+  - !permit
+    role: !group users
+    privilege: [ read, authenticate ]
+    resource: !webservice
 
-- !grant
-  role: !group users
-  members: 
-    - !group /admins
+  - !grant
+    role: !group users
+    members: 
+      - !group /admins

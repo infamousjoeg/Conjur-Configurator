@@ -1,67 +1,70 @@
-- !webservice
-
-#Mandatory variable: The JWT provider URI
-#Uncomment either 'provider-uri' OR 'jwks-uri'
-
-#- !variable
-#    id: provider-uri
-
-- !variable
-    id: jwks-uri
-
-#Optional variables
-#Uncomment one or all of the following optional variables.
-#Note: If you uncomment 'token-app-property' you must also uncomment 'identity-path',
-#and vice versa;
-
-- !variable
-    id: token-app-property
-
-- !variable
-    id: identity-path
-
-- !variable
-    id: issuer
-
-#- !variable
-#    id: enforced-claims
-
-#- !variable
-#    id: mapping-claims
-
-#- !variable
-#    id: audience
-
-
-#Group of applications that can authenticate using this JWT Authenticator
-- !group nodes
-
-- !permit
-  role: !group nodes
-  privilege: [ read, authenticate ]
-  resource: !webservice
-
-- !webservice
-    id: status
-
-#Group of users who can check the status of the JWT Authenticator
-- !group
-    id: operators
-
-- !permit
-  role: !group operators
-  privilege: [ read ]
-  resource: !webservice status
-
 - !policy
-  id: cluster
+  id: conjur/authn-jwt/jenkins
   body:
-   - !host
-     id: Pipeline1
-     annotations:
-       authn-jwt/jenkins/jenkins_full_name: Pipeline1
+  - !webservice
 
-- !grant
-  role: !group nodes
-  members:
-    - !host cluster/Pipeline1
+  #Mandatory variable: The JWT provider URI
+  #Uncomment either 'provider-uri' OR 'jwks-uri'
+
+  #- !variable
+  #    id: provider-uri
+
+  - !variable
+      id: jwks-uri
+
+  #Optional variables
+  #Uncomment one or all of the following optional variables.
+  #Note: If you uncomment 'token-app-property' you must also uncomment 'identity-path',
+  #and vice versa;
+
+  - !variable
+      id: token-app-property
+
+  - !variable
+      id: identity-path
+
+  - !variable
+      id: issuer
+
+  #- !variable
+  #    id: enforced-claims
+
+  #- !variable
+  #    id: mapping-claims
+
+  #- !variable
+  #    id: audience
+
+
+  #Group of applications that can authenticate using this JWT Authenticator
+  - !group nodes
+
+  - !permit
+    role: !group nodes
+    privilege: [ read, authenticate ]
+    resource: !webservice
+
+  - !webservice
+      id: status
+
+  #Group of users who can check the status of the JWT Authenticator
+  - !group
+      id: operators
+
+  - !permit
+    role: !group operators
+    privilege: [ read ]
+    resource: !webservice status
+
+  - !policy
+    id: cluster
+    body:
+    - !host
+      id: Pipeline1
+      annotations:
+        authn-jwt/jenkins/jenkins_full_name: Pipeline1
+
+  - !grant
+    role: !group nodes
+    members:
+      - !host cluster/Pipeline1

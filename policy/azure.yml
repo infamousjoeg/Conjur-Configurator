@@ -1,36 +1,39 @@
-- !webservice
-
-- !variable
-  id: provider-uri 
-      
-- !group 
-  id: apps
-  annotations:
-    description: Group of hosts that can authenticate using the authn-azure/<service-id> authenticator
-  
-- !permit
-  role: !group apps
-  privilege: [ read, authenticate ]
-  resource: !webservice
-
 - !policy
-  id: azure-apps
+  id: conjur/authn-azure/prod
   body:
-    - !group
- 
-    - &hosts
-      - !host
-        id: azureVM
-        annotations:
-          authn-azure/subscription-id: subscr1pt10n-1dmy-subsc-r1pt10n1d
-          authn-azure/resource-group: myResourceGroup
-          # authn-azure/user-assigned-identity: <user-assigned managed identity>
-          authn-azure/system-assigned-identity: 0000aaaa-00aa-00aa-00aa-00000aaaaa
+  - !webservice
+
+  - !variable
+    id: provider-uri 
+        
+  - !group 
+    id: apps
+    annotations:
+      description: Group of hosts that can authenticate using the authn-azure/<service-id> authenticator
+    
+  - !permit
+    role: !group apps
+    privilege: [ read, authenticate ]
+    resource: !webservice
+
+  - !policy
+    id: azure-apps
+    body:
+      - !group
+  
+      - &hosts
+        - !host
+          id: azureVM
+          annotations:
+            authn-azure/subscription-id: subscr1pt10n-1dmy-subsc-r1pt10n1d
+            authn-azure/resource-group: myResourceGroup
+            # authn-azure/user-assigned-identity: <user-assigned managed identity>
+            authn-azure/system-assigned-identity: 0000aaaa-00aa-00aa-00aa-00000aaaaa
+            
+      - !grant
+        role: !group
+        members: *hosts
           
-    - !grant
-      role: !group
-      members: *hosts
-         
-- !grant
-  role: !group apps
-  member: !group azure-apps
+  - !grant
+    role: !group apps
+    member: !group azure-apps
