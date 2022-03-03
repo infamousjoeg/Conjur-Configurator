@@ -6,3 +6,5 @@
 .DS_Store
 *.tar
 *.pem
+users_api.txt
+*-k8s_follower.yaml
