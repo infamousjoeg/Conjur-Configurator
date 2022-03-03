@@ -635,7 +635,33 @@ EOF
       echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
     fi
     admin_pass
-    policy_load_rest &> /dev/null
+    api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+    echo "Loading Kubernetes policies."
+    authn_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-k8s.yml)" https://localhost/policies/$company_name/policy/root)
+    # echo "Here is the authenticator policy results:"
+    # echo $authn_policy
+    seed_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/k8s-seed-fetcher.yml)" https://localhost/policies/$company_name/policy/root)
+    # echo ""
+    # echo "Here is the seed fetcher policy results:"
+    # echo $seed_policy
+    api_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-api-app.yml)" https://localhost/policies/$company_name/policy/root)
+    # echo ""
+    # echo "Here is the api app policy results:"
+    # echo $api_policy
+    follower_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-follower-auto-configuration.yml)" https://localhost/policies/$company_name/policy/root)
+    # echo ""
+    # echo "Here is the follower policy results:"
+    # echo $follower_policy
+    secrets_provider_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-secrets-provider.yml)" https://localhost/policies/$company_name/policy/root)
+    # echo ""
+    # echo "Here is the secrets provider policy results:"
+    # echo $secrets_provider_policy
+    k8sgrants_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-grants.yml)" https://localhost/policies/$company_name/policy/root)
+    # echo ""
+    # echo "Here is the k8s grants policy results:"
+    # echo $k8sgrants_policy
+    echo ""
     echo "Setting internal CA and Key:"
     $container_command exec $leader_container_id bash -c "openssl genrsa -out ca.key 2048" &> /dev/null
     CONFIG="
@@ -651,8 +677,8 @@ authorityKeyIdentifier = keyid:always,issuer:always
     $container_command exec $leader_container_id bash -c "openssl req -x509 -new -nodes -key ca.key -sha1 -days 3650 -set_serial 0x0 -out ca.cert -subj "/CN=conjur.authn-k8s.prod/OU=Conjur Kubernetes CA/O=$company_name" -config <(echo "$CONFIG")" &> /dev/null
     api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.key")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/prod/ca/key
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.cert")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/prod/ca/cert
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.key")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/cluster1/ca/key
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.cert")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/cluster1/ca/cert
     echo "----------Instructions----------"
     echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s_follower.yaml>."
     echo "Once loaded, there are 3 variables in conjur that need information:"
@@ -1144,14 +1170,11 @@ policy_load_rest(){
     echo "Getting Auth token"
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
     echo "Loading root policy."
-    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading secrets policy."
     secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading users policy."
     users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/users.yml)" https://localhost/policies/$company_name/policy/root)
-    echo ""
-    echo "Here are the users that were created:"
-    echo $users_policy_output
     echo ""
     echo "Creating dummy secrets"
     for (( count=1; count<=8; count++ ))
@@ -1159,10 +1182,16 @@ policy_load_rest(){
       for ((secret_count=1; secret_count<=8; secret_count++))
       do
         secret=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)
-        echo "Secret vault1/LOBUser1/Safe$count/secret$count is set to $secret"
+        echo "Secret vault1/LOBUser1/Safe$count/secret$secret_count is set to $secret"
         curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$secret" https://localhost/secrets/$company_name/variable/vault1/LOBUser1/Safe$count/secret$secret_count
       done
     done
+    echo ""
+    echo "Here are the users that were created:"
+    echo $users_policy_output
+    echo $users_policy_output > $PWD/users_api.txt
+    echo ""
+    echo "Created text file with user information at $PWD/users_api.txt"
   else
     echo "Master is unhealthy"
     echo "Returning to Main Menu."

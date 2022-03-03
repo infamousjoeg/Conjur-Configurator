@@ -1,0 +1,12 @@
+- !policy
+  id: conjur/seed-generation
+  body:
+  - !webservice
+
+  - !group
+    id: consumers
+
+  - !permit
+    role: !group consumers
+    privilege: [ "execute" ]
+    resource: !webservice

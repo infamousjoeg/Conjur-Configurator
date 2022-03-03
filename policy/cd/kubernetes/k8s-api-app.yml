@@ -1,0 +1,22 @@
+#Simple Go application
+# This is a template explaining all of the host configuration options.
+# - !host
+#   id: <application-name>
+#   annotations:
+#     authn-k8s/namespace: <namespace of app>
+#     authn-k8s/deployment: <deployment name of app>
+#     authn-k8s/deployment-config: <deployment-config name (Openshift)>
+#     authn-k8s/pod: <pod name>
+#     authn-k8s/stateful-set: <stateful-set name>
+#     authn-k8s/service-account: <service account of the app>
+#     authn-k8s/authentication-container-name: <name of the authenticator container in the application pod>
+---
+- !policy
+  id: cd/kubernetes/k8s-api-app
+  body:
+  - !host
+    id: go-app
+    annotations:
+      authn-k8s/namespace: conjur
+      authn-k8s/deployment: goapp
+      authn-k8s/authentication-container-name: authenticator

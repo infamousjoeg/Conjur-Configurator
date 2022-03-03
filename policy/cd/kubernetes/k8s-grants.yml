@@ -1,0 +1,19 @@
+- !grant
+  role: !group conjur/seed-generation/consumers
+  member: !group cd/kubernetes/k8s-follower-auto-configuration/cluster1
+
+#Grants access to the follower account to authenticate itself with authn-k8s/cluster1
+
+- &k8s-hosts
+  - !host
+    id: cd/kubernetes/k8s-api-app/go-app
+  
+  - !host
+    id: cd/kubernetes/k8s-follower-auto-configuration/cluster1/k8s-follower
+
+  - !host
+    id: cd/kubernetes/k8s-secrets-provider
+
+- !grant
+  role: !group conjur/authn-k8s/cluster1/consumers
+  members: *k8s-hosts
