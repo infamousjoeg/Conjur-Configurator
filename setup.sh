@@ -301,10 +301,10 @@ data:
   CONJUR_ACCOUNT: $company_name
   CONJUR_LEADER_APPLIANCE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
   CONJUR_SEED_FILE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower"
-  CONJUR_AUTHN_LOGIN: "host/conjur/authn-k8s/prod/auto-configuration/conjur-follower-k8s"
+  CONJUR_AUTHN_LOGIN: "host/cd/kubernetes/k8s-follower-auto-configuration/cluster1/k8s-follower"
   SEEDFILE_DIR: "$seedfile_dir"
   FOLLOWER_HOSTNAME: "$service_name"
-  AUTHENTICATOR_ID: "prod"
+  AUTHENTICATOR_ID: "cluster1"
   CONJUR_SSL_CERTIFICATE: |
 $ssl_cert
 
@@ -322,8 +322,8 @@ metadata:
 data:
   CONJUR_ACCOUNT: $company_name
   CONJUR_APPLIANCE_URL: "https://$service_name.$namespace.svc.cluster.local"
-  CONJUR_AUTHN_URL: "https://$service_name.$namespace.svc.cluster.local/authn-k8s/prod"
-  CONJUR_AUTHENTICATOR_ID: "prod"
+  CONJUR_AUTHN_URL: "https://$service_name.$namespace.svc.cluster.local/authn-k8s/cluster1"
+  CONJUR_AUTHENTICATOR_ID: "cluster1"
   CONJUR_VERSION: "5"
   CONJUR_SSL_CERTIFICATE: |- 
 $ssl_cert
@@ -356,7 +356,7 @@ spec:
         emptyDir:
           medium: Memory
       initContainers:
-      - name: authenticator
+      - name: seed-fetcher
         image: cyberark/dap-seedfetcher:latest
         imagePullPolicy: IfNotPresent
         envFrom:
@@ -387,7 +387,7 @@ spec:
         command: ["$seedfile_dir/start-follower.sh"]
         env:
           - name: CONJUR_AUTHENTICATORS
-            value: "authn-k8s/prod"
+            value: "authn-k8s/cluster1"
           - name: SEEDFILE_DIR
             value: $seedfile_dir
           - name: KUBERNETES_SERVICE_HOST
@@ -472,7 +472,7 @@ spec:
               name: conjur-connect
         env:
           - name: CONJUR_AUTHN_LOGIN
-            value: "host/conjur/authn-k8s/prod/apps/go-app"
+            value: "host/cd/kubernetes/k8s-api-app/go-app"
           - name: MY_POD_NAME
             valueFrom:
               fieldRef:
@@ -526,7 +526,7 @@ stringData:
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: k8ssecrets-account
+  name: k8s-secrets-provider-account
   namespace: $namespace
 
 ---
@@ -549,9 +549,9 @@ metadata:
 subjects:
   - kind: ServiceAccount
     namespace: $namespace
-    name: k8ssecrets-account
+    name: k8s-secrets-provider-account
 roleRef:
-  kind: ClusterRole
+  kind: Role
   apiGroup: rbac.authorization.k8s.io
   name: secrets-access
 
@@ -575,9 +575,9 @@ spec:
         role: demo
         app: k8ssecrets
     spec:
-      serviceAccountName: k8ssecrets-account
+      serviceAccountName: k8s-secrets-provider-account
       initContainers:
-      - name: cyberark-secrets-provider
+      - name: k8s-secrets-provider
         image: cyberark/secrets-provider-for-k8s:latest
         imagePullPolicy: IfNotPresent
         envFrom:
@@ -597,7 +597,7 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
           - name: CONJUR_AUTHN_LOGIN
-            value: "host/conjur/authn-k8s/prod/apps/secrets-provider"
+            value: "host/k8s-secrets-provider"
           - name: SECRETS_DESTINATION
             value: k8s_secrets
           - name: K8S_SECRETS
@@ -623,10 +623,14 @@ EOF
     echo "Updating policy with the right namespace value of $namespace."
     if [[ "$OSTYPE" == "linux-gnu"* ]]
     then
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/kubernetes.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-api-app.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-secrets-provider.yml
     elif [[ "$OSTYPE" == "darwin"* ]]
     then
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/kubernetes.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-api-app.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-secrets-provider.yml
     else
       echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
     fi
@@ -1140,67 +1144,25 @@ policy_load_rest(){
     echo "Getting Auth token"
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
     echo "Loading root policy."
-    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading app policy."
-    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading IAM policy."
-    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading Kubernetes policy."
-    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading OIDC policy."
-    oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading Jenkins JWT policy."
-    jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading GitLab JWT policy."
-    gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/gitlab.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading Seed Generation policy."
-    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading Tanzu policy."
-    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "Loading Azure policy."
-    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://localhost/policies/$company_name/policy/root)
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X PUT -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading secrets policy."
     secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/root)
+    echo "loading users policy."
+    users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/users.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Here are the users that were created:"
-    echo $root_policy_output
+    echo $users_policy_output
     echo ""
-    echo "Here are the hosts created for CI/CD apps:"
-    echo $app_policy_output
-    echo ""
-    echo "Here are the hosts created for Tanzu apps:"
-    echo $tanzu_policy_output
-    echo ""
-    echo "Here are the hosts created for Azure apps:"
-    echo $azure_policy_output
-    echo ""
-    echo "Here are the hosts created for JWT apps:"
-    echo $jenkins_jwt_policy_output
-    echo $gitlab_jwt_policy_output
-    echo ""
-    echo "Creating dummy secret for ansible"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
-    echo "Creating dummy secret for electric flow"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/electric_secret
-    echo "Creating dummy secret for openshift"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
-    echo "Creating dummy secret for docker"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/docker_secret
-    echo "Creating dummy secret for aws"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/aws_secret
-    echo "Creating dummy secret for azure"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/azure_secret
-    echo "Creating dummy secret for kubernetes"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
-    echo "Creating dummy secret for terraform"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
-    echo "Creating dummy secret for puppet"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
-    echo "Creating dummy secret for chef"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/chef_secret
-    echo "Creating dummy secret for jenkins"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
-    echo ""
+    echo "Creating dummy secrets"
+    for (( count=1; count<=8; count++ ))
+    do
+      for ((secret_count=1; secret_count<=8; secret_count++))
+      do
+        secret=$(LC_ALL=C < /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c32)
+        echo "Secret vault1/LOBUser1/Safe$count/secret$count is set to $secret"
+        curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$secret" https://localhost/secrets/$company_name/variable/vault1/LOBUser1/Safe$count/secret$secret_count
+      done
+    done
   else
     echo "Master is unhealthy"
     echo "Returning to Main Menu."
