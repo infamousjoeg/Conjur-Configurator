@@ -301,7 +301,7 @@ data:
   CONJUR_ACCOUNT: $company_name
   CONJUR_LEADER_APPLIANCE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
   CONJUR_SEED_FILE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower"
-  CONJUR_AUTHN_LOGIN: "host/cd/kubernetes/k8s-follower-auto-configuration/cluster1/k8s-follower"
+  CONJUR_AUTHN_LOGIN: "host/cd/kubernetes/k8s-follower-auto-configuration/cluster1/k8s-follower1"
   SEEDFILE_DIR: "$seedfile_dir"
   FOLLOWER_HOSTNAME: "$service_name"
   AUTHENTICATOR_ID: "cluster1"
@@ -332,7 +332,7 @@ $ssl_cert
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: conjur-access
+  name: conjur-follower
   namespace: $namespace
   labels:
     app: cyberark
@@ -381,7 +381,7 @@ spec:
           - name: conjur-token
             mountPath: /run/conjur
       containers:
-      - name: node
+      - name: follower
         imagePullPolicy: IfNotPresent
         image: $conjur_image
         command: ["$seedfile_dir/start-follower.sh"]
@@ -446,7 +446,7 @@ metadata:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: goapp
+  name: api-app1
   namespace: $namespace
   labels:
     app: go
@@ -472,7 +472,7 @@ spec:
               name: conjur-connect
         env:
           - name: CONJUR_AUTHN_LOGIN
-            value: "host/cd/kubernetes/k8s-api-app/go-app"
+            value: "host/cd/kubernetes/dev-team-1/api-app1"
           - name: MY_POD_NAME
             valueFrom:
               fieldRef:
@@ -498,9 +498,9 @@ spec:
           - name: CONJUR_AUTHN_TOKEN_FILE
             value: /run/conjur/access-token
           - name: CONJUR_USER_OBJECT
-            value: secrets/ci-variables/puppet_secret
+            value: vault1/LOBUser1/Safe2/secret1
           - name: CONJUR_PASS_OBJECT
-            value: secrets/cd-variables/kubernetes_secret
+            value: vault1/LOBUser1/Safe2/secret2
         volumeMounts:
           - mountPath: /run/conjur
             name: conjur-access-token
@@ -519,8 +519,8 @@ data:
   DBName:   bXlhcHBEQg==
 stringData:
   conjur-map: |-   
-    username: secrets/ci-variables/puppet_secret
-    password: secrets/cd-variables/kubernetes_secret
+    username: vault1/LOBUser1/Safe2/secret3
+    password: vault1/LOBUser1/Safe2/secret4
 
 ---
 apiVersion: v1
@@ -559,7 +559,7 @@ roleRef:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: k8ssecretprovider
+  name: k8s-secrets-app1
   namespace: $namespace
   labels:
     app: k8ssecrets
@@ -597,7 +597,7 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
           - name: CONJUR_AUTHN_LOGIN
-            value: "host/k8s-secrets-provider"
+            value: "host/cd/kubernetes/dev-team-1/k8s-secrets-app1"
           - name: SECRETS_DESTINATION
             value: k8s_secrets
           - name: K8S_SECRETS
@@ -618,19 +618,72 @@ spec:
               secretKeyRef:
                 name: db-credentials
                 key: password
+
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: synched-secrets
+  namespace: $namespace
+type: Opaque
+stringData:
+  conjur-map: |-   
+    username: vault1/LOBUser1/Safe2/secret5
+    password: vault1/LOBUser1/Safe2/secret6
+
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: secrets-provider
+  namespace: $namespace
+spec:
+  schedule: "* * * * *"
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: k8s-secrets-provider-account
+          containers:
+          - name: k8s-secrets-provider-namespace
+            image: cyberark/secrets-provider-for-k8s:latest
+            imagePullPolicy: IfNotPresent
+            envFrom:
+              - configMapRef:
+                  name: conjur-connect
+            env:
+              - name: MY_POD_NAME
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.name
+              - name: MY_POD_NAMESPACE
+                valueFrom:
+                  fieldRef:
+                    fieldPath: metadata.namespace
+              - name: MY_POD_IP
+                valueFrom:
+                  fieldRef:
+                    fieldPath: status.podIP
+              - name: CONJUR_AUTHN_LOGIN
+                value: "host/cd/kubernetes/dev-team-1/k8s-secrets-app2"
+              - name: SECRETS_DESTINATION
+                value: k8s_secrets
+              - name: K8S_SECRETS
+                value: synched-secrets
+          restartPolicy: OnFailure
 EOF
     echo "File has been created $PWD/$company_name-k8s_follower.yaml"
     echo "Updating policy with the right namespace value of $namespace."
     if [[ "$OSTYPE" == "linux-gnu"* ]]
     then
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-api-app.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-1.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-2.yml
       sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-secrets-provider.yml
     elif [[ "$OSTYPE" == "darwin"* ]]
     then
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-api-app.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-1.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-2.yml
       sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-secrets-provider.yml
     else
       echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
     fi
@@ -639,28 +692,11 @@ EOF
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
     echo "Loading Kubernetes policies."
     authn_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-k8s.yml)" https://localhost/policies/$company_name/policy/root)
-    # echo "Here is the authenticator policy results:"
-    # echo $authn_policy
     seed_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/k8s-seed-fetcher.yml)" https://localhost/policies/$company_name/policy/root)
-    # echo ""
-    # echo "Here is the seed fetcher policy results:"
-    # echo $seed_policy
-    api_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-api-app.yml)" https://localhost/policies/$company_name/policy/root)
-    # echo ""
-    # echo "Here is the api app policy results:"
-    # echo $api_policy
     follower_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-follower-auto-configuration.yml)" https://localhost/policies/$company_name/policy/root)
-    # echo ""
-    # echo "Here is the follower policy results:"
-    # echo $follower_policy
-    secrets_provider_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-secrets-provider.yml)" https://localhost/policies/$company_name/policy/root)
-    # echo ""
-    # echo "Here is the secrets provider policy results:"
-    # echo $secrets_provider_policy
+    k8s_dev_team_1_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_2_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
     k8sgrants_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-grants.yml)" https://localhost/policies/$company_name/policy/root)
-    # echo ""
-    # echo "Here is the k8s grants policy results:"
-    # echo $k8sgrants_policy
     echo ""
     echo "Setting internal CA and Key:"
     $container_command exec $leader_container_id bash -c "openssl genrsa -out ca.key 2048" &> /dev/null
@@ -681,11 +717,13 @@ authorityKeyIdentifier = keyid:always,issuer:always
     curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.cert")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/cluster1/ca/cert
     echo "----------Instructions----------"
     echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s_follower.yaml>."
+    echo "The certificate in the conjur-connect config map needs to be updated with the follower certificate. The initial cert loaded into the config map is that of the leader. If connecting to the leader is desirned then change all of the url addresses to the leader fqdn and re-apply the manifest."
+    echo ""
     echo "Once loaded, there are 3 variables in conjur that need information:"
     echo ""
-    echo "conjur/authn-k8s/prod/kubernetes/api-url needs to have the api url so that the leader can communicate with the cluster's API."
-    echo "conjur/authn-k8s/prod/kubernetes/ca-cert needs to have the cluster cert so that the leader can send encrypted communication to the cluster's API."
-    echo "conjur/authn-k8s/prod/kubernetes/service-account-token needs to have a valid token fro the conjur-cluser service account."
+    echo "conjur/authn-k8s/cluster1/kubernetes/api-url needs to have the api url so that the leader can communicate with the cluster's API."
+    echo "conjur/authn-k8s/cluster1/kubernetes/ca-cert needs to have the cluster cert so that the leader can send encrypted communication to the cluster's API."
+    echo "conjur/authn-k8s/cluster1/kubernetes/service-account-token needs to have a valid token from the conjur-cluster service account."
     echo "----------End----------"
     echo ""
   else
@@ -700,20 +738,35 @@ jenkins_jwt(){
   echo "This option enables jwt authentication for Jenkins"
   echo -n "Please enter the hostname of your Jenkins instance (in the format https://jenkins.com): "
   read jenkins_hostname
-  echo "Loading Jenkins policy values"
+  echo "Loading Jenkins policy and values."
   admin_pass
-  echo "Getting API KEY"
   api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
-  echo "Getting Auth token"
   auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+  echo "Loading authentication policy."
+  jenkins_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-jwt-jenkins.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $jenkins_policy_output
+  echo "Loading Dev_Team_1 policy."
+  dev_team1__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $dev_team1__policy_output
+  echo "Loading Dev_Team_1 policy."
+  dev_team2__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $dev_team2__policy_output
+  echo "Loading jenkins projects policy."
+  jenkins_projects__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-projects.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $jenkins_projects__policy_output
+  echo "Loading jenkins grants policy."
+  jenkins_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-grants.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $jenkins_grants__policy_output
   echo "Loading JWKS value."
   curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname/jwtauth/conjur-jwk-set" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/jwks-uri
   echo "Loading identity path"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/jenkins/cluster" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/identity-path
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/ci/jenkins/projects" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/identity-path
   echo "Loading issuer"
   curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/issuer
   echo "Loading token app property"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "identity" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/token-app-property
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "jenkins_full_name" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/token-app-property
+  echo "Loading audience"
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/audience
   echo ""
   echo "----------Instructions----------"
   echo "Please fill in the Jenkins plugin configuration with this information:"
@@ -730,11 +783,13 @@ jenkins_jwt(){
   echo "Signing Key Lifetime In Minutes - 5"
   echo "JWT Token Duration In Seconds - 60"
   echo "Enable Context Aware Credential Stores? - checked"
-  echo "Identity Field Name - identity"
+  echo "Identity Field Name - conjur_host"
   echo "Identity Format Fields - jenkins_name"
   echo "Identity Fields Separator - \"-\""
   echo ""
-  echo "Create a pipeline job with the name - Pipeline1"
+  echo "Create a folder with the name - Dev-Team-1"
+  echo "Create a folder with the name - Dev-team-2"
+  echo "Create Pipeline Jobs within each folder called - Job1 and Job2"
   echo "----------End----------"
 }
 
@@ -742,12 +797,15 @@ gitlab_jwt(){
   echo "This option enables jwt authentication for Gitlab"
   echo -n "Please enter the hostname of your Gitlab instance (in the format https://gitlab.com): "
   read gitlab_hostname
-  echo "Loading Gitlab policy values"
+  echo "Loading Gitlab policies and values"
   admin_pass
-  echo "Getting API KEY"
   api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
-  echo "Getting Auth token"
   auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+  echo "loading authenticator policy"
+  gitlab_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-jwt-gitlab.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $gitlab_policy_output
+  echo ""
+    
   echo "Loading JWKS value."
   curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/jwks-uri
   echo "Loading identity path"
@@ -993,7 +1051,7 @@ deploy_leader_container(){
       cat <<EOF > $config_dir/conjur.yml
 #List of authenticators enabled for this node
 authenticators: 
-  - authn-k8s/prod
+  - authn-k8s/cluster1
   - authn-iam/prod
   - authn-azure/prod
   - authn-oidc/provider
