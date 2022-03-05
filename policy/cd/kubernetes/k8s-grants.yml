@@ -2,18 +2,39 @@
   role: !group conjur/seed-generation/consumers
   member: !group cd/kubernetes/k8s-follower-auto-configuration/cluster1
 
+- !grant
+  role: !group conjur/authn-k8s/cluster1/consumers
+  members:
+    - !group cd/kubernetes/k8s-follower-auto-configuration/cluster1
+
+
+
 #Grants access to the follower account to authenticate itself with authn-k8s/cluster1
-
-- &k8s-hosts
-  - !host
-    id: cd/kubernetes/k8s-api-app/go-app
-  
-  - !host
-    id: cd/kubernetes/k8s-follower-auto-configuration/cluster1/k8s-follower
-
-  - !host
-    id: cd/kubernetes/k8s-secrets-provider
 
 - !grant
   role: !group conjur/authn-k8s/cluster1/consumers
-  members: *k8s-hosts
+  members:
+    - !group cd/kubernetes/dev-team-1/api-apps
+    - !group cd/kubernetes/dev-team-1/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-1/secretless-apps
+    - !group cd/kubernetes/dev-team-1/push-to-file-apps
+    - !group cd/kubernetes/dev-team-2/api-apps
+    - !group cd/kubernetes/dev-team-2/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-2/secretless-apps
+    - !group cd/kubernetes/dev-team-2/push-to-file-apps
+
+- !grant
+  role: !group vault1/LOBUser1/Safe2/consumers
+  members:
+    - !group cd/kubernetes/dev-team-1/api-apps
+    - !group cd/kubernetes/dev-team-1/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-1/secretless-apps
+    - !group cd/kubernetes/dev-team-1/push-to-file-apps
+
+- !grant
+  role: !group vault1/LOBUser1/Safe3/consumers
+  members:
+    - !group cd/kubernetes/dev-team-2/api-apps
+    - !group cd/kubernetes/dev-team-2/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-2/secretless-apps
+    - !group cd/kubernetes/dev-team-2/push-to-file-apps

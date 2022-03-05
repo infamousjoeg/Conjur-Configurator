@@ -17,7 +17,7 @@
 
   - &follower-service-accounts
     - !host
-      id: k8s-follower
+      id: k8s-follower1
       annotations:
         authn-k8s/namespace: conjur
         authn-k8s/service-account: conjur-cluster

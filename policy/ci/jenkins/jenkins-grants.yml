@@ -1,0 +1,21 @@
+- !grant
+  role: !group conjur/authn-jwt/jenkins/consumers
+  members: 
+    - !group ci/jenkins/projects/dev-team-1-jobs
+    - !group ci/jenkins/projects/dev-team-1-folder
+    - !group ci/jenkins/projects/dev-team-2-jobs
+    - !group ci/jenkins/projects/dev-team-2-folder
+
+
+- !grant
+  role: !group vault1/LOBUser1/Safe1/consumers
+  member: !group ci/jenkins/projects/dev-team-1-folder
+
+- !grant
+  role: !group vault1/LOBUser1/Safe8/consumers
+  member: !group ci/jenkins/projects/dev-team-1-jobs
+
+- !grant
+  role: !group vault1/LOBUser1/Safe3/consumers
+  member: !group ci/jenkins/projects/dev-team-2-jobs
+
