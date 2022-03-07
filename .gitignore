@@ -4,5 +4,6 @@
 /seeds
 /logs
 .DS_Store
+.vagrant
 *.tar
 *.pem
