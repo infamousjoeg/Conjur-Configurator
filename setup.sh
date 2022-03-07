@@ -8,7 +8,7 @@ config_filepath="$config_dir/$config_filename"
 
 #This function will check for the existence of a previous configuration file.
 config_check(){
-  if [ -a $config_filepath ];
+  if [ -a "$config_filepath" ];
   then
     import_menu
   else
@@ -33,9 +33,9 @@ import_menu(){
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
-      read selection
+      read -r selection
       echo ""
-      case $selection in
+      case "$selection" in
         1 ) clear ; import_config ; press_enter ; function_menu ; exit ;;
         2 ) clear ; delete_config ; create_config ; press_enter ; function_menu ; exit ;;
         0 ) clear ; exit ;;
@@ -64,9 +64,9 @@ function_menu(){
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
-      read selection
+      read -r selection
       echo ""
-      case $selection in
+      case "$selection" in
         1 ) clear ; create_config ; container_runtime ; press_enter ; deploy_leader_container_menu ; press_enter ;;
         2 ) clear ; loadbalancer_leader_exists ; configure_leader_container ; press_enter ;;
         3 ) clear ; cli_configure_menu ; press_enter ;;
@@ -92,15 +92,15 @@ deploy_leader_container_menu(){
       echo "What method should be used to obtain the conjur image?"
       echo "    	1  -  Pull from dockerhub?"
       echo "    	2  -  Provide image name that pulls from an accessible private remote registry?"
-      echo "    	3  -  Provide image name to use that's stored in the local regsitry?"
+      echo "    	3  -  Provide image name to use that's stored in the local registry?"
       echo "    	4  -  Provide image file for import into local registry?"
       echo "    	5  -  Return to main menu."
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
-      read selection
+      read -r selection
       echo ""
-      case $selection in
+      case "$selection" in
         1 ) clear ; pull_dockerhub "conjur_ent" ; press_enter ; deploy_leader_container ; press_enter ; function_menu ;;
         2 ) clear ; private_registry "conjur_ent" ; press_enter ; deploy_leader_container ; press_enter ; function_menu ;;
         3 ) clear ; local_registry "conjur_ent" ; deploy_leader_container ; press_enter ; function_menu ;;
@@ -126,9 +126,9 @@ cli_configure_menu(){
       echo "    	0  -  Exit"
       echo ""
       echo -n "  Enter selection: "
-      read selection
+      read -r selection
       echo ""
-      case $selection in
+      case "$selection" in
         1 ) clear ; pull_dockerhub "cli" ; press_enter ; cli_configure ; press_enter ; function_menu ;;
         2 ) clear ; private_registry "cli" ; press_enter ; cli_configure ; press_enter ; function_menu ;;
         3 ) clear ; local_registry "cli" ; press_enter ; cli_configure ; press_enter ; function_menu ;;
@@ -144,7 +144,7 @@ cli_configure_menu(){
 press_enter() {
   echo ""
   echo -n "	Press Enter to continue "
-  read
+  read -r
   clear
 }
 
@@ -155,14 +155,15 @@ incorrect_selection() {
 
 #Function to import the configuration file. Does checking on the contents to make sure it's formatted correctly. Will remove old file if something is wrong. 
 import_config(){
-  local count=$(wc -l < $config_filepath)
-  if [ $count -eq 11 ]
+  local count
+  count=$(wc -l < "$config_filepath")
+  if [ "$count" -eq 11 ]
   then
     echo "Configuration file is correct!"
     echo "||||||||||||||||||||||||||||||"
     echo "Contents of configuration file:"
-    echo "$(cat $config_filepath)"
-    source $config_filepath
+    echo "$(<"$config_filepath")"
+    source "$config_filepath"
   else
     echo "Configuration file is malformed."
     echo "Deleting configuration file and creating new blank configuration file."
@@ -174,11 +175,11 @@ import_config(){
 #Function to delete the old config file but print the contents first. Just in case they are needed in the future.
 delete_config(){
   echo "Contents of old configuration file:"
-  echo "$(cat $config_filepath)"
+  echo "$(<"$config_filepath")"
   echo ""
-  echo "Deleting configuration file in $config_filepath."
+  echo "Deleting configuration file in ${config_filepath}."
   echo "Deleting previous certificate."
-  rm -f $config_dir/conjur-$company_name.pem
+  rm -f "$config_dir"/conjur-"$company_name".pem
   echo "Removing in memory variables."
   conjur_image=
   cli_image=
@@ -191,18 +192,18 @@ delete_config(){
   container_command=
   company_name=
   ssl_cert=
-  rm -f $config_filepath
+  rm -f "$config_filepath"
 }
 
 #Function to create a configuration file.
 create_config(){
-  if [ -a $config_filepath ];
+  if [ -a "$config_filepath" ];
   then
     echo "Configuration file exists."
   else
-    echo "Creating configuration file \"$config_filename\" in \"$config_dir\"."
-    mkdir -p $config_dir/
-    cat <<EOF > $config_filepath
+    echo "Creating configuration file ${config_filename} in ${config_dir}."
+    mkdir -p "$config_dir"/
+    cat <<EOF > "$config_filepath"
 conjur_image=
 cli_image=
 fqdn_leader=
@@ -222,10 +223,10 @@ fi
 update_config(){
   if [[ "$OSTYPE" == "linux-gnu"* ]]
   then
-    sed -i'' "s~$1=.*~$1=$2~" $config_filepath
+    sed -i'' "s~$1=.*~$1=$2~" "$config_filepath"
   elif [[ "$OSTYPE" == "darwin"* ]]
   then
-    sed -i '' "s~$1=.*~$1=$2~" $config_filepath
+    sed -i '' "s~$1=.*~$1=$2~" "$config_filepath"
   else
     echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
   fi
@@ -234,17 +235,17 @@ update_config(){
 #Function to create a k8s yaml to deploy a follower to kubernetes
 create_k8s_yaml(){
   echo "This option will create a k8s manifest file and output it to the current directory."
-  if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+  if curl -ikL --output /dev/null --silent --head --fail https://localhost/health
   then
     echo "Leader machine is healthy and available."
     echo ""
     echo -n "What is the namespace name in k8s?: "
-    read namespace
+    read -r namespace
     echo -n "What service name do you want to use?: "
-    read service_name
+    read -r service_name
     seedfile_dir="/tmp/seedfile"
-    ssl_cert=$(sed 's/^/    /' $config_dir/conjur-$company_name.pem)
-    cat <<EOF > $PWD/$company_name-k8s_follower.yaml
+    ssl_cert=$(sed 's/^/    /' "$config_dir"/conjur-"$company_name".pem)
+    cat <<EOF > "$PWD"/"$company_name"-k8s_follower.yaml
 ---
 apiVersion: v1
 kind: Namespace
@@ -299,8 +300,8 @@ metadata:
   namespace: $namespace
 data:
   CONJUR_ACCOUNT: $company_name
-  CONJUR_LEADER_APPLIANCE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
-  CONJUR_SEED_FILE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower"
+  CONJUR_LEADER_APPLIANCE_URL: "https://$(if [ -z "$fqdn_loadbalancer_leader_standby" ]; then echo "$fqdn_leader"; else echo "$fqdn_loadbalancer_leader_standby"; fi)"
+  CONJUR_SEED_FILE_URL: "https://$(if [ -z "$fqdn_loadbalancer_leader_standby" ]; then echo "$fqdn_leader"; else echo "$fqdn_loadbalancer_leader_standby"; fi)/configuration/$company_name/seed/follower"
   CONJUR_AUTHN_LOGIN: "host/conjur/authn-k8s/prod/auto-configuration/conjur-follower-k8s"
   SEEDFILE_DIR: "$seedfile_dir"
   FOLLOWER_HOSTNAME: "$service_name"
@@ -619,21 +620,21 @@ spec:
                 name: db-credentials
                 key: password
 EOF
-    echo "File has been created $PWD/$company_name-k8s_follower.yaml"
-    echo "Updating policy with the right namespace value of $namespace."
+    echo "File has been created ${PWD}/${company_name}-k8s_follower.yaml"
+    echo "Updating policy with the right namespace value of ${namespace}."
     if [[ "$OSTYPE" == "linux-gnu"* ]]
     then
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/kubernetes.yml
+      sed -i'' "s~namespace: conjur.*~namespace: ${namespace}~" ./policy/kubernetes.yml
     elif [[ "$OSTYPE" == "darwin"* ]]
     then
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/kubernetes.yml
+      sed -i '' "s~namespace: conjur.*~namespace: ${namespace}~" ./policy/kubernetes.yml
     else
       echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
     fi
     admin_pass
     policy_load_rest &> /dev/null
     echo "Setting internal CA and Key:"
-    $container_command exec $leader_container_id bash -c "openssl genrsa -out ca.key 2048" &> /dev/null
+    "$container_command" exec "$leader_container_id" bash -c "openssl genrsa -out ca.key 2048" &> /dev/null
     CONFIG="
 [ req ]
 distinguished_name = dn
@@ -644,13 +645,13 @@ basicConstraints = critical,CA:TRUE
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 "
-    $container_command exec $leader_container_id bash -c "openssl req -x509 -new -nodes -key ca.key -sha1 -days 3650 -set_serial 0x0 -out ca.cert -subj "/CN=conjur.authn-k8s.prod/OU=Conjur Kubernetes CA/O=$company_name" -config <(echo "$CONFIG")" &> /dev/null
-    api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
-    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.key")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/prod/ca/key
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.cert")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/prod/ca/cert
+    "$container_command" exec "$leader_container_id" bash -c "openssl req -x509 -new -nodes -key ca.key -sha1 -days 3650 -set_serial 0x0 -out ca.cert -subj "/CN=conjur.authn-k8s.prod/OU=Conjur Kubernetes CA/O="$company_name"" -config <(echo $CONFIG)" &> /dev/null
+    api_key=$(curl -k -s -X GET -u admin:"$admin_password" https://localhost/authn/"$company_name"/login)
+    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data "$api_key" https://localhost/authn/"$company_name"/admin/authenticate)
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$("$container_command" exec "$leader_container_id" bash -c "cat ca.key")" https://localhost/secrets/"$company_name"/variable/conjur/authn-k8s/prod/ca/key
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$("$container_command" exec "$leader_container_id" bash -c "cat ca.cert")" https://localhost/secrets/"$company_name"/variable/conjur/authn-k8s/prod/ca/cert
     echo "----------Instructions----------"
-    echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s_follower.yaml>."
+    echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f ${company_name}-k8s_follower.yaml>."
     echo "Once loaded, there are 3 variables in conjur that need information:"
     echo ""
     echo "conjur/authn-k8s/prod/kubernetes/api-url needs to have the api url so that the leader can communicate with the cluster's API."
@@ -669,34 +670,34 @@ authorityKeyIdentifier = keyid:always,issuer:always
 jenkins_jwt(){
   echo "This option enables jwt authentication for Jenkins"
   echo -n "Please enter the hostname of your Jenkins instance (in the format https://jenkins.com): "
-  read jenkins_hostname
+  read -r jenkins_hostname
   echo "Loading Jenkins policy values"
   admin_pass
   echo "Getting API KEY"
-  api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+  api_key=$(curl -k -s -X GET -u admin:"$admin_password" https://localhost/authn/"$company_name"/login)
   echo "Getting Auth token"
-  auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+  auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data "$api_key" https://localhost/authn/"$company_name"/admin/authenticate)
   echo "Loading JWKS value."
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname/jwtauth/conjur-jwk-set" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/jwks-uri
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname/jwtauth/conjur-jwk-set" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/jenkins/jwks-uri
   echo "Loading identity path"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/jenkins/cluster" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/identity-path
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/jenkins/cluster" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/jenkins/identity-path
   echo "Loading issuer"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/issuer
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/jenkins/issuer
   echo "Loading token app property"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "identity" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/token-app-property
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "identity" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/jenkins/token-app-property
   echo ""
   echo "----------Instructions----------"
   echo "Please fill in the Jenkins plugin configuration with this information:"
   echo "Conjur Appliance"
-  echo "Account - $company_name"
-  echo "Appliance URL - https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
+  echo "Account - ${company_name}"
+  echo "Appliance URL - https://$(if [ -z "$fqdn_loadbalancer_leader_standby" ]; then echo "$fqdn_leader"; else echo "$fqdn_loadbalancer_leader_standby"; fi)"
   echo "Conjur Auth Credential - Leave Blank"
   echo "Conjur SSL Certificate - Import Cert directly into Jenkins keystore"
   echo ""
   echo "Conjur JWT Authentication"
   echo "Enable JWT Key Set endpoint? - checked"
   echo "Auth WebServiceID - authn-jwt/jenkins"
-  echo "JWT Audience - https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
+  echo "JWT Audience - https://$(if [ -z "$fqdn_loadbalancer_leader_standby" ]; then echo "$fqdn_leader"; else echo "$fqdn_loadbalancer_leader_standby"; fi)"
   echo "Signing Key Lifetime In Minutes - 5"
   echo "JWT Token Duration In Seconds - 60"
   echo "Enable Context Aware Credential Stores? - checked"
@@ -711,29 +712,29 @@ jenkins_jwt(){
 gitlab_jwt(){
   echo "This option enables jwt authentication for Gitlab"
   echo -n "Please enter the hostname of your Gitlab instance (in the format https://gitlab.com): "
-  read gitlab_hostname
+  read -r gitlab_hostname
   echo "Loading Gitlab policy values"
   admin_pass
   echo "Getting API KEY"
-  api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+  api_key=$(curl -k -s -X GET -u admin:"$admin_password" https://localhost/authn/"$company_name"/login)
   echo "Getting Auth token"
-  auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+  auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data "$api_key" https://localhost/authn/"$company_name"/admin/authenticate)
   echo "Loading JWKS value."
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/jwks-uri
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/gitlab/jwks-uri
   echo "Loading identity path"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/gitlab/cluster" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/identity-path
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/gitlab/cluster" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/gitlab/identity-path
   echo "Loading issuer"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/issuer
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/gitlab/issuer
   echo "Loading token app property"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "namespace_path" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/token-app-property
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "namespace_path" https://localhost/secrets/"$company_name"/variable/conjur/authn-jwt/gitlab/token-app-property
   echo ""
   echo "----------Instructions----------"
   echo "Please create a group in Gitlab - gitlab_dev_team_1"
   echo "Please then create a repository called - Gitlab_job_1"
   echo "Save bash.gitlab-ci.yml to the root of the Gitlab_job_1 repository"
   echo "Exporting bash.gitlab-ci.yml to this $PWD/bash.gitlab-ci.yml."
-  conjur_address=$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)
-  cat <<EOF > $PWD/bash.gitlab-ci.yml
+  conjur_address=$(if [ -z "$fqdn_loadbalancer_leader_standby" ]; then echo "$fqdn_leader"; else echo "$fqdn_loadbalancer_leader_standby"; fi)
+  cat <<EOF > "$PWD"/bash.gitlab-ci.yml
 test1:
   stage: test
   script:
@@ -750,13 +751,13 @@ EOF
 }
 
 admin_pass(){
-  if [ -z $admin_password ]
+  if [ -z "$admin_password" ]
   then
     echo -n "Enter your admin password: "
-    read -s admin_password
+    read -r -s admin_password
     echo ""
-    output=$(curl -sIk -o /dev/null -w "%{http_code}" --user admin:$admin_password https://localhost/authn/cyberark/login)
-    if $(echo $output | grep "200" > /dev/null)
+    output=$(curl -sIk -o /dev/null -w "%{http_code}" --user admin:"$admin_password" https://localhost/authn/cyberark/login)
+    if echo "$output" | grep "200" > /dev/null
     then
       echo "Verified that the admin password is correct."
       press_enter
@@ -773,10 +774,10 @@ admin_pass(){
 create_follower_seed(){
   echo "Checking to see if Master is configured"
   echo -n "Enter follower DNS name (or follower loadbalancer name): "
-  read fqdn_follower
-  update_config 'fqdn_follower' $fqdn_follower
-  $container_command exec $leader_container_id evoke seed follower $fqdn_follower > follower_seed.tar
-  echo "Seed file exported at $PWD/follower_seed.tar."
+  read -r fqdn_follower
+  update_config 'fqdn_follower' "$fqdn_follower"
+  $container_command exec "$leader_container_id" evoke seed follower "$fqdn_follower" > follower_seed.tar
+  echo "Seed file exported at ${PWD}/follower_seed.tar."
   echo "Please transport that file over to the follower instance."
 }
 
@@ -784,10 +785,10 @@ create_follower_seed(){
 create_standby_seed(){
   echo "Checking to see if Master is configured"
   echo -n "Enter standby DNS name: "
-  read fqdn_standby
-  update_config 'fqdn_standby' $fqdn_standby
-  $container_command exec $leader_container_id evoke seed standby $fqdn_standby > standby_seed.tar
-  echo "Seed file exported at $PWD/standby_seed.tar."
+  read -r fqdn_standby
+  update_config 'fqdn_standby' "$fqdn_standby"
+  "$container_command" exec "$leader_container_id" evoke seed standby "$fqdn_standby" > standby_seed.tar
+  echo "Seed file exported at ${PWD}/standby_seed.tar."
   echo "Please transport that file over to the standby instance."
 }
 
@@ -797,12 +798,12 @@ container_runtime(){
   then
     echo "PodMan has been found."
     container_command="podman"
-    update_config 'container_command' $container_command
+    update_config 'container_command' "$container_command"
   elif command -v docker &> /dev/null
   then
     echo "Docker has been found."
     container_command="docker"
-    update_config 'container_command' $container_command
+    update_config 'container_command' "$container_command"
     docker_check
   else
     echo "No Runtime found."
@@ -815,7 +816,7 @@ container_runtime(){
 #Check the installation of Docker for known issues. 
 docker_check(){
   echo "Checking if the daemon is accessible"
-    if ! $container_command info >/dev/null 2>&1; 
+    if ! "$container_command" info >/dev/null 2>&1; 
     then
       echo "Docker daemon doesn't appear to be running or is inaccessible."
       echo "Returning to main menu."
@@ -825,7 +826,7 @@ docker_check(){
       echo "Docker daemon appears to be running."
     fi
   echo "Checking if d_type true"
-    if ! $container_command system info | grep "Supports d_type: true" >/dev/null 2>&1; 
+    if ! "$container_command" system info | grep "Supports d_type: true" >/dev/null 2>&1; 
     then
       echo "Docker d_type isn't enabled."
       echo "Returning to main menu."
@@ -842,20 +843,20 @@ pull_dockerhub(){
   if curl -Is https://hub.docker.com | head -n 1 | grep "200" &> /dev/null
   then
     echo "Can connect to dockerhub and will pull image directly"
-        if [ $1 = "conjur_ent" ]
+        if [ "$1" = "conjur_ent" ]
         then
           echo -n "What is the repo and image name to be pulled?: "
-          read dockerhub_conjur_image
+          read -r dockerhub_conjur_image
           conjur_image=$dockerhub_conjur_image
-          echo "Pulling image: $conjur_image"
-          $container_command pull $conjur_image &> /dev/null
-          update_config 'conjur_image' $conjur_image
-        elif [ $1 = "cli" ]
+          echo "Pulling image: ${conjur_image}"
+          $container_command pull "$conjur_image" &> /dev/null
+          update_config 'conjur_image' "$conjur_image"
+        elif [ "$1" = "cli" ]
         then
           cli_image=cyberark/conjur-cli:5-latest
-          echo "Pulling image: $cli_image"
-          $container_command pull $cli_image &> /dev/null
-          update_config 'cli_image' $cli_image
+          echo "Pulling image: ${cli_image}"
+          $container_command pull "$cli_image" &> /dev/null
+          update_config 'cli_image' "$cli_image"
         fi
   else
     echo "Can't connect to dockerhub."
@@ -868,8 +869,8 @@ pull_dockerhub(){
 #Function that will use a provate registry. You will need to provide the image name from a local registry. 
 private_registry(){
   echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
-  read image
-  if ! $container_command pull $image
+  read -r image
+  if ! $container_command pull "$image"
   then
     echo "Couldn't pull image from registry. Please verify network connection and/or verify that docker is properly authenticated."
     press_enter;
@@ -877,16 +878,16 @@ private_registry(){
   else
     echo "Connection to registry successful!"
     echo "Pulling image."
-    $container_command pull $image &> /dev/null
+    $container_command pull "$image" &> /dev/null
     echo ""
     echo "Successfully pulled image!"
-      if [ $1 = "conjur_ent" ]
+      if [ "$1" = "conjur_ent" ]
       then
-        update_config 'conjur_image' $image
+        update_config 'conjur_image' "$image"
         conjur_image=$image
-      elif [ $1 = "cli" ]
+      elif [ "$1" = "cli" ]
       then
-        update_config 'cli_image' $image
+        update_config 'cli_image' "$image"
         cli_image=$image
       fi
   fi
@@ -895,7 +896,7 @@ private_registry(){
 #Function to pull something from the local registry. You will need to know the image name. 
 local_registry(){
   echo -n "Enter the image name (Use format registryAddress/imageName:ImageTag): "
-  read image
+  read -r image
   if [ "$($container_command images --filter "reference=$image")" = "" ]
   then
     echo "Could not find image in local registry."
@@ -903,35 +904,35 @@ local_registry(){
     press_enter
     ${FUNCNAME[1]};
   else
-    echo "Found image in local registry: $image"
-      if [ $1 = "conjur_ent" ]
+    echo "Found image in local registry: ${image}"
+      if [ "$1" = "conjur_ent" ]
       then
-        update_config 'conjur_image' $image
+        update_config 'conjur_image' "$image"
         conjur_image=$image
-      elif [ $1 = "cli" ]
+      elif [ "$1" = "cli" ]
       then
         cli_image=$image
-        update_config 'cli_image' $image
+        update_config 'cli_image' "$image"
       fi
   fi
 }
 
 import_registry(){
   echo "Scanning current directory for saved image file."
-  if [ $(find conjur-app*) &> /dev/null ] && [ $1 = "conjur_ent" ]
+  if find conjur-app* &> /dev/null && [ "$1" = "conjur_ent" ]
   then
     echo "Found local appliance file."
     tarname=$(find conjur-app*)
-    conjur_image=$($container_command load -i $tarname)
-    conjur_image=$(echo $conjur_image | sed 's/Loaded image: //')
-    update_config 'conjur_image' $conjur_image
-  elif [ $(find conjur-cli*) &> /dev/null ] && [ $1 = "cli" ]
+    conjur_image=$($container_command load -i "$tarname")
+    conjur_image=$(echo "$conjur_image" | sed 's/Loaded image: //')
+    update_config 'conjur_image' "$conjur_image"
+  elif find conjur-cli* &> /dev/null && [ "$1" = "cli" ]
   then
     echo "Found local cli file."
     tarname=$(find conjur-cli*)
-    cli_image=$($container_command load -i $tarname)
-    cli_image=$(echo $cli_image | sed 's/Loaded image: //')
-    update_config 'cli_image' $cli_image
+    cli_image=$($container_command load -i "$tarname")
+    cli_image=$(echo "$cli_image" | sed 's/Loaded image: //')
+    update_config 'cli_image' "$cli_image"
   else
     echo "Can't find local image in current directory."
     echo "Please contact your CyberArk Engineer to obtain the image file."
@@ -945,10 +946,10 @@ deploy_leader_container(){
     echo "Starting configuration of the leader container."
     echo ""
     echo -n "Enter the DNS name for the Conjur leader (Name can not be \"localhost\" or \"conjur\" or contain any spaces): "
-    read fqdn_leader
+    read -r fqdn_leader
     if [[ $fqdn_leader = *" "* ]] || [[ $fqdn_leader = localhost ]] || [[ $fqdn_leader = conjur ]] || [[ $fqdn_leader = "" ]]
     then
-      echo "Load balancer DNS name as "$fqdn_leader" is not supported."
+      echo "Load balancer DNS name as ${fqdn_leader} is not supported."
       echo "The name can not:"
       echo " - Contain any spaces."
       echo " - Be \"localhost\""
@@ -957,10 +958,10 @@ deploy_leader_container(){
       press_enter
       deploy_leader_container
     else
-      update_config 'fqdn_leader' $fqdn_leader
+      update_config 'fqdn_leader' "$fqdn_leader"
       echo "Creating local folders."
-      mkdir -p $config_dir/{security,configuration,backup,seeds,logs}
-      cat <<EOF > $config_dir/conjur.yml
+      mkdir -p "$config_dir"/{security,configuration,backup,seeds,logs}
+      cat <<EOF > "$config_dir"/conjur.yml
 #List of authenticators enabled for this node
 authenticators: 
   - authn-k8s/prod
@@ -971,11 +972,11 @@ authenticators:
   - authn-jwt/gitlab
   - authn
 EOF
-      echo "Creating Conjur $container_command network."
-      $container_command network create conjur &> /dev/null
+      echo "Creating Conjur ${container_command} network."
+      "$container_command" network create conjur &> /dev/null
       echo "Starting container."
-      leader_container_id=$($container_command container run \
-      --name $fqdn_leader \
+      leader_container_id=$("$container_command" container run \
+      --name "$fqdn_leader" \
       --detach \
       --network conjur \
       --restart=unless-stopped \
@@ -984,28 +985,28 @@ EOF
       --publish "444:444" \
       --publish "5432:5432" \
       --publish "1999:1999" \
-      --volume $config_dir/conjur.yml:/etc/conjur/config/conjur.yml:Z \
-      --volume $config_dir/configuration:/opt/cyberark/dap/configuration:Z \
-      --volume $config_dir/security:/opt/cyberark/dap/security:Z \
-      --volume $config_dir/backup:/opt/conjur/backup:Z \
-      --volume $config_dir/seeds:/opt/cyberark/dap/seeds:Z \
-      --volume $config_dir/logs:/var/log/conjur:Z \
-      $conjur_image)
-      update_config 'leader_container_id' $leader_container_id
+      --volume "$config_dir"/conjur.yml:/etc/conjur/config/conjur.yml:Z \
+      --volume "$config_dir"/configuration:/opt/cyberark/dap/configuration:Z \
+      --volume "$config_dir"/security:/opt/cyberark/dap/security:Z \
+      --volume "$config_dir"/backup:/opt/conjur/backup:Z \
+      --volume "$config_dir"/seeds:/opt/cyberark/dap/seeds:Z \
+      --volume "$config_dir"/logs:/var/log/conjur:Z \
+      "$conjur_image")
+      update_config 'leader_container_id' "$leader_container_id"
       echo "Leader/Standby Container deployed!"
     fi
 }
 
 loadbalancer_leader_exists(){
   echo -n "Will there be a loadbalancer used for the leader and standby instance? (y or n): "
-  read loadbalancer_exists
-  if [[ $loadbalancer_exists = "y" ]]
+  read -r loadbalancer_exists
+  if [[ "$loadbalancer_exists" = "y" ]]
   then
     echo -n "What is the DNS name of the loadbalancer for the leader/standby instances?: "
-    read fqdn_loadbalancer_leader_standby
-    if [[ $fqdn_loadbalancer_leader_standby = *" "* ]] || [[ $fqdn_loadbalancer_leader_standby = localhost ]] || [[ $fqdn_loadbalancer_leader_standby = conjur ]] || [[ $fqdn_loadbalancer_leader_standby = "" ]]
+    read -r fqdn_loadbalancer_leader_standby
+    if [[ "$fqdn_loadbalancer_leader_standby" = *" "* ]] || [[ "$fqdn_loadbalancer_leader_standby" = localhost ]] || [[ "$fqdn_loadbalancer_leader_standby" = conjur ]] || [[ "$fqdn_loadbalancer_leader_standby" = "" ]]
     then
-      echo "Load balancer DNS name as "$fqdn_loadbalancer_leader_standby" is not supported."
+      echo "Load balancer DNS name as ${fqdn_loadbalancer_leader_standby} is not supported."
       echo "The name can not:"
       echo " - Contain any spaces."
       echo " - Be \"localhost\"."
@@ -1014,14 +1015,14 @@ loadbalancer_leader_exists(){
       press_enter
       loadbalancer_leader_exists
     else
-      update_config 'fqdn_loadbalancer_leader_standby' $fqdn_loadbalancer_leader_standby
+      update_config 'fqdn_loadbalancer_leader_standby' "$fqdn_loadbalancer_leader_standby"
     fi
-  elif [[ $loadbalancer_exists = "n" ]]
+  elif [[ "$loadbalancer_exists" = "n" ]]
   then
     echo "No loadblancer DNS will be configured"
     press_enter
   else
-    echo "Incorrect selection. You entered \"$loadbalancer_exists\" and that is not supported"
+    echo "Incorrect selection. You entered ${loadbalancer_exists} and that is not supported"
     echo "Returning to previous menu."
     press_enter
     ${FUNCNAME[1]};
@@ -1031,16 +1032,16 @@ loadbalancer_leader_exists(){
 #Configure Conjur Enterprise Leader container as leader.
 configure_leader_container(){
   echo "Checking to make sure leader container is currently running."
-  if $container_command container ls --filter id=$leader_container_id | grep Up  &> /dev/null
+  if "$container_command" container ls --filter id="$leader_container_id" | grep Up  &> /dev/null
   then
-    echo "Found container $leader_container_id running."
+    echo "Found container ${leader_container_id} running."
     admin_password=$(generate_strong_password)
     echo ""
     echo -n "Please enter company short name (Spaces are not supported): "
-    read company_name
-    if [[ $company_name = *" "* ]] || [[ $company_name = localhost ]] || [[ $company_name = conjur ]] || [[ $company_name = "" ]]
+    read -r company_name
+    if [[ "$company_name" = *" "* ]] || [[ "$company_name" = localhost ]] || [[ "$company_name" = conjur ]] || [[ "$company_name" = "" ]]
     then
-      echo "Company name as "$company_name" is not supported."
+      echo "Company name as ${company_name} is not supported."
       echo "The name can not:"
       echo " - Contain any spaces."
       echo " - Be \"localhost\"."
@@ -1049,45 +1050,45 @@ configure_leader_container(){
       press_enter
       configure_leader_container
     else
-      update_config 'company_name' $company_name
+      update_config 'company_name' "$company_name"
       echo ""
-      echo "Configuring Conjur Leader container using company name: $company_name"
-      if [ -z $fqdn_loadbalancer_leader_standby ];
+      echo "Configuring Conjur Leader container using company name: ${company_name}"
+      if [ -z "$fqdn_loadbalancer_leader_standby" ];
       then
-        $container_command exec $leader_container_id evoke configure master --debug --accept-eula --hostname $fqdn_leader --admin-password $admin_password $company_name
+        "$container_command" exec "$leader_container_id" evoke configure master --debug --accept-eula --hostname "$fqdn_leader" --admin-password "$admin_password" "$company_name"
       else
-        $container_command exec $leader_container_id evoke configure master --debug --accept-eula --hostname $fqdn_loadbalancer_leader_standby --master-altnames $fqdn_leader --admin-password $admin_password $company_name
+        "$container_command" exec "$leader_container_id" evoke configure master --debug --accept-eula --hostname "$fqdn_loadbalancer_leader_standby" --master-altnames "$fqdn_leader" --admin-password "$admin_password" "$company_name"
       fi
       echo "Checking to make sure container has come up successfully"
-      if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+      if curl -ikL --output /dev/null --silent --head --fail https://localhost/health
       then
         echo ""
-        echo "Exporting certificate to confiuration directory"
-        if [ -z $fqdn_loadbalancer_leader_standby ];
+        echo "Exporting certificate to configuration directory"
+        if [ -z "$fqdn_loadbalancer_leader_standby" ];
         then
-          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_leader.pem $config_dir/conjur-$company_name.pem
+          "$container_command" cp "$leader_container_id":/opt/conjur/etc/ssl/"$fqdn_leader".pem "$config_dir"/conjur-"$company_name".pem
         else
-          $container_command cp $leader_container_id:/opt/conjur/etc/ssl/$fqdn_loadbalancer_leader_standby.pem $config_dir/conjur-$company_name.pem
+          "$container_command" cp "$leader_container_id":/opt/conjur/etc/ssl/"$fqdn_loadbalancer_leader_standby".pem "$config_dir"/conjur-"$company_name".pem
         fi
-        echo "Exported certificate to $config_dir/conjur-$company_name.pem"
-        update_config 'ssl_cert' $config_dir/conjur-$company_name.pem
+        echo "Exported certificate to ${config_dir}/conjur-${company_name}.pem"
+        update_config 'ssl_cert' "$config_dir"/conjur-"$company_name".pem
         # echo ""
         # echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, Azure authenticator, and JWT for Jenkins."
         # $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider,authn-jwt/jenkins &> /dev/null
         echo ""
         echo "Setting log level to debug"
-        $container_command exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
+        "$container_command" exec "$leader_container_id" evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
         echo ""
         echo "Conjur Leader successfully configured!!!"
         echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
-        echo "Admin Password is: $admin_password"
+        echo "Admin Password is: ${admin_password}"
         echo "|||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||||"
       else
         echo "Something went wrong with the leader configuration."
       fi
     fi
   else
-    echo "Couldn't find container $leader_container_id running. Please stand up a leader/standby container from the main menu."
+    echo "Couldn't find container ${leader_container_id} running. Please stand up a leader/standby container from the main menu."
   fi
 }
 
@@ -1102,104 +1103,104 @@ generate_strong_password(){
 #remove containers that have been configured
 remove_container(){
   echo "Removing leader container."
-  $container_command container rm -f $leader_container_id &> /dev/null
+  "$container_command" container rm -f "$leader_container_id" &> /dev/null
   echo "Removing CLI container."
-  $container_command container rm -f $cli_container_id &> /dev/null
+  "$container_command" container rm -f "$cli_container_id" &> /dev/null
   echo "Removing docker network."
-  $container_command network rm conjur &> /dev/null
+  "$container_command" network rm conjur &> /dev/null
   delete_config
 }
 
 cli_configure(){
-  if [ -z $admin_password ]
+  if [ -z "$admin_password" ]
   then
     echo -n "Enter your admin password: "
-    read -s admin_password
+    read -r -s admin_password
     echo ""
     cli_configure;
   else
     case "$container_command" in
       *podman* ) echo "PodMan networking requires customization to allow the CLI container to work in an automated fashion. Please configure manually if CLI is desired."; echo "returning to main menu."; press_enter; function_menu ;;
-      *docker* ) cli_container_id=$($container_command container run -d --name conjur-cli --network conjur --restart=unless-stopped -v $(pwd)/policy:/policy --entrypoint "" $cli_image sleep infinity) ;;
+      *docker* ) cli_container_id=$("$container_command" container run -d --name conjur-cli --network conjur --restart=unless-stopped -v "$(pwd)"/policy:/policy --entrypoint "" "$cli_image" sleep infinity) ;;
       * ) echo "Error with defining the continer command used on the system. Returning to the main menu." ; press_enter ; function_menu ;;
     esac
-    update_config 'cli_container_id' $cli_container_id
+    update_config 'cli_container_id' "$cli_container_id"
     echo "Configuring CLI container to talk to leader."
-    $container_command exec -i $cli_container_id conjur init --account $company_name --url https://$fqdn_leader <<< yes &> /dev/null
+    "$container_command" exec -i "$cli_container_id" conjur init --account "$company_name" --url https://"$fqdn_leader" <<< yes &> /dev/null
     echo "Logging into leader as admin."
-    $container_command exec $cli_container_id conjur authn login -u admin -p $admin_password
+    "$container_command" exec "$cli_container_id" conjur authn login -u admin -p "$admin_password"
   fi
 }
 
 policy_load_rest(){
   admin_pass
-  if $(curl -ikL --output /dev/null --silent --head --fail https://localhost/health)
+  if curl -ikL --output /dev/null --silent --head --fail https://localhost/health
   then
     echo "Getting API KEY"
-    api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
+    api_key=$(curl -k -s -X GET -u admin:"$admin_password" https://localhost/authn/"$company_name"/login)
     echo "Getting Auth token"
-    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+    auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data "$api_key" https://localhost/authn/"$company_name"/admin/authenticate)
     echo "Loading root policy."
-    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://localhost/policies/"$company_name"/policy/root)
     echo "Loading app policy."
-    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://localhost/policies/$company_name/policy/root)
+    app_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/apps.yml)" https://localhost/policies/"$company_name"/policy/root)
     echo "Loading IAM policy."
-    conjur_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://localhost/policies/$company_name/policy/root)
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/aws.yml)" https://localhost/policies/"$company_name"/policy/root > /dev/null
     echo "Loading Kubernetes policy."
-    kubernetes_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://localhost/policies/$company_name/policy/root)
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/kubernetes.yml)" https://localhost/policies/"$company_name"/policy/root > /dev/null
     echo "Loading OIDC policy."
-    oidc_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/$company_name/policy/root)
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/oidc_provider.yml)" https://localhost/policies/"$company_name"/policy/root > /dev/null
     echo "Loading Jenkins JWT policy."
-    jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/jenkins.yml)" https://localhost/policies/$company_name/policy/root)
+    jenkins_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/jenkins.yml)" https://localhost/policies/"$company_name"/policy/root)
     echo "Loading GitLab JWT policy."
-    gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/gitlab.yml)" https://localhost/policies/$company_name/policy/root)
+    gitlab_jwt_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/gitlab.yml)" https://localhost/policies/"$company_name"/policy/root)
     echo "Loading Seed Generation policy."
-    seedgeneration_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/$company_name/policy/root)
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/seedgeneration.yml)" https://localhost/policies/"$company_name"/policy/root > /dev/null
     echo "Loading Tanzu policy."
-    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://localhost/policies/$company_name/policy/root)
+    tanzu_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/tanzu.yml)" https://localhost/policies/"$company_name"/policy/root)
     echo "Loading Azure policy."
-    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://localhost/policies/$company_name/policy/root)
+    azure_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/azure.yml)" https://localhost/policies/"$company_name"/policy/root)
     echo "loading secrets policy."
-    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/root)
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://localhost/policies/"$company_name"/policy/root > /dev/null
     echo ""
     echo "Here are the users that were created:"
-    echo $root_policy_output
+    echo "$root_policy_output"
     echo ""
     echo "Here are the hosts created for CI/CD apps:"
-    echo $app_policy_output
+    echo "$app_policy_output"
     echo ""
     echo "Here are the hosts created for Tanzu apps:"
-    echo $tanzu_policy_output
+    echo "$tanzu_policy_output"
     echo ""
     echo "Here are the hosts created for Azure apps:"
-    echo $azure_policy_output
+    echo "$azure_policy_output"
     echo ""
     echo "Here are the hosts created for JWT apps:"
-    echo $jenkins_jwt_policy_output
-    echo $gitlab_jwt_policy_output
+    echo "$jenkins_jwt_policy_output"
+    echo "$gitlab_jwt_policy_output"
     echo ""
     echo "Creating dummy secret for ansible"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/ansible_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/ansible_secret
     echo "Creating dummy secret for electric flow"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/electric_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/electric_secret
     echo "Creating dummy secret for openshift"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/openshift_secret 
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/openshift_secret 
     echo "Creating dummy secret for docker"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/docker_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/docker_secret
     echo "Creating dummy secret for aws"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/aws_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/aws_secret
     echo "Creating dummy secret for azure"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/azure_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/azure_secret
     echo "Creating dummy secret for kubernetes"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/kubernetes_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/kubernetes_secret
     echo "Creating dummy secret for terraform"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/cd-variables/terraform_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/cd-variables/terraform_secret
     echo "Creating dummy secret for puppet"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/puppet_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/ci-variables/puppet_secret
     echo "Creating dummy secret for chef"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/chef_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/ci-variables/chef_secret
     echo "Creating dummy secret for jenkins"
-    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/$company_name/variable/secrets/ci-variables/jenkins_secret
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "secretValue" https://localhost/secrets/"$company_name"/variable/secrets/ci-variables/jenkins_secret
     echo ""
   else
     echo "Master is unhealthy"
