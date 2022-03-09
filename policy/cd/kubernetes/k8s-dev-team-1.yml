@@ -70,7 +70,7 @@
       id: push-to-file-app1
       annotations:
         authn-k8s/namespace: conjur
-        authn-k8s/service-account: push-to-file-account
+        authn-k8s/service-account: k8s-secrets-provider-push-to-file-account
         authn-k8s/authentication-container-name: push-to-file
   
   - !group

@@ -1,0 +1,3 @@
+- !policy
+  id: ci/gitlab/dev-team-1
+  body:

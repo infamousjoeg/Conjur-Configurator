@@ -1,0 +1,29 @@
+- !policy
+  id: ci/gitlab/projects
+  body:
+  - &dev_team_1_job_hosts
+    - !host
+      id: Dev-Team-1/Job1
+      annotations:
+        authn-jwt/gitlab/namnespace_path: Dev-Team-1
+
+  - !group
+    id: dev-team-1-jobs
+
+  - !grant
+    role: !group dev-team-1-jobs
+    members: *dev_team_1_job_hosts
+    
+ 
+  - &dev_team_2_job_hosts
+    - !host
+      id: Dev-Team-2/Job2
+      annotations:
+        authn-jwt/gitlab/namespace_path: Dev-Team-2
+
+  - !group
+    id: dev-team-2-jobs
+
+  - !grant
+    role: !group dev-team-2-jobs
+    members: *dev_team_2_job_hosts

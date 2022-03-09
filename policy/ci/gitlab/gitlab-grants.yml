@@ -1,0 +1,13 @@
+- !grant
+  role: !group conjur/authn-jwt/gitlab/consumers
+  members: 
+    - !group ci/gitlab/projects/dev-team-1-jobs
+    - !group ci/gitlab/projects/dev-team-2-jobs
+
+- !grant
+  role: !group vault1/LOBUser1/Safe5/consumers
+  member: !group ci/gitlab/projects/dev-team-1-jobs
+
+- !grant
+  role: !group vault1/LOBUser1/Safe7/consumers
+  member: !group ci/gitlab/projects/dev-team-2-jobs

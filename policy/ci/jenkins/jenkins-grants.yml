@@ -18,4 +18,3 @@
 - !grant
   role: !group vault1/LOBUser1/Safe3/consumers
   member: !group ci/jenkins/projects/dev-team-2-jobs
-

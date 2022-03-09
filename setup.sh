@@ -671,8 +671,87 @@ spec:
               - name: K8S_SECRETS
                 value: synched-secrets
           restartPolicy: OnFailure
+
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: k8s-secrets-provider-push-to-file-account
+  namespace: $namespace
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: conjur-push-to-file
+  name: push-to-file-app1
+  namespace: $namespace
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: conjur-push-to-file
+  template:
+    metadata:
+      labels:
+        app: conjur-push-to-file
+      annotations:
+        conjur.org/authn-identity: "host/cd/kubernetes/dev-team-1/push-to-file-app1"
+        conjur.org/container-mode: sidecar
+        conjur.org/secrets-destination: file
+        conjur.org/conjur-secrets-policy-path.safe-2: vault1/LOBUser1/Safe2/
+        conjur.org/conjur-secrets.safe-2: |
+          - username: secret1
+          - password: secret2
+        conjur.org/secret-file-path.conjur-push-to-file: "./credentials.yaml"
+        conjur.org/secret-file-format.conjur-push-to-file: "yaml"
+        conjur.org/secrets-refresh-interval: 1m
+        conjur.org/secrets-refresh-enabled: "true"
+    spec:
+      serviceAccountName: k8s-secrets-provider-push-to-file-account
+      containers:
+      - name: push-to-file-app1
+        image: centos:latest
+        imagePullPolicy: Always
+        command: ["sleep"]
+        args: ["infinity"]
+        volumeMounts:
+          - name: conjur-secrets
+            mountPath: /opt/secrets/conjur
+            readOnly: true
+      - name: push-to-file
+        image: 'cyberark/secrets-provider-for-k8s:latest'
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: MY_POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: MY_POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        envFrom:
+        - configMapRef:
+            name: conjur-connect
+        volumeMounts:
+          - name: podinfo
+            mountPath: /conjur/podinfo
+          - name: conjur-secrets
+            mountPath: /conjur/secrets
+      volumes:
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "annotations"
+                fieldRef:
+                  fieldPath: metadata.annotations
+        - name: conjur-secrets
+          emptyDir:
+            medium: Memory
 EOF
-    echo "File has been created $PWD/$company_name-k8s_follower.yaml"
+    echo "File has been created $PWD/$company_name-k8s.yaml"
     echo "Updating policy with the right namespace value of $namespace."
     if [[ "$OSTYPE" == "linux-gnu"* ]]
     then
@@ -801,38 +880,50 @@ gitlab_jwt(){
   admin_pass
   api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
   auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
-  echo "loading authenticator policy"
+  echo "Loading authentication policy."
   gitlab_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-jwt-gitlab.yml)" https://localhost/policies/$company_name/policy/root)
   echo $gitlab_policy_output
-  echo ""
-    
+  echo "Loading Dev_Team_1 policy."
+  dev_team1__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $dev_team1__policy_output
+  echo "Loading Dev_Team_1 policy."
+  dev_team2__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $dev_team2__policy_output
+  echo "Loading jenkins projects policy."
+  gitlab_projects__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-projects.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $gitlab_projects__policy_output
+  echo "Loading jenkins grants policy."
+  gitlab_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-grants.yml)" https://localhost/policies/$company_name/policy/root)
+  echo $gitlab_grants__policy_output
   echo "Loading JWKS value."
   curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/jwks-uri
   echo "Loading identity path"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/conjur/authn-jwt/gitlab/cluster" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/identity-path
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/ci/gitlab/projectsr" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/identity-path
   echo "Loading issuer"
   curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/issuer
   echo "Loading token app property"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "namespace_path" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/token-app-property
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "project_path" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/token-app-property
   echo ""
   echo "----------Instructions----------"
-  echo "Please create a group in Gitlab - gitlab_dev_team_1"
-  echo "Please then create a repository called - Gitlab_job_1"
-  echo "Save bash.gitlab-ci.yml to the root of the Gitlab_job_1 repository"
+  echo "Please create two groups in Gitlab - Dev-Team-1 and Dev-Team-2"
+  echo "Please then create two repositories - Dev-Team-1/Job1 and Dev-Team-2/Job2"
+  echo "Save bash.gitlab-ci.yml to the root of the each repository."
   echo "Exporting bash.gitlab-ci.yml to this $PWD/bash.gitlab-ci.yml."
   conjur_address=$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)
   cat <<EOF > $PWD/bash.gitlab-ci.yml
+image: ubuntu:latest
 test1:
   stage: test
   script:
     - echo "Authenticating to Conjur"
-    - TOKEN=\$(curl -k --request POST 'https://$conjur_address/authn-jwt/gitlab/cyberark/authenticate' --header 'Content-Type:application/x-www-form-urlencoded' --header "Accept-Encoding:base64" --data-urlencode "jwt=$CI_JOB_JWT")
+    - TOKEN=\$(curl -k --request POST 'https://$conjur_address/authn-jwt/gitlab/$company_name/authenticate' --header 'Content-Type:application/x-www-form-urlencoded' --header "Accept-Encoding:base64" --data-urlencode "jwt=$CI_JOB_JWT")
     - echo "Here is the access token:"
     - echo \$TOKEN
     - echo ""
     - echo "Fetching secret"
-    - SECRET=\$(curl -k --header "Authorization:Token token=\"\$TOKEN\"" -X GET https://$conjur_address/secrets/cyberark/variable/secrets/cd-variables/azure_secret)
-    - echo "The secret value is \$SECRET"
+    - SECRET=$(curl -k --header "Authorization:Token token=\"$TOKEN\"" -X GET https://$conjur_address/resources/$company_name?kind=variable
+    - echo "Here is the list of secrets you can access:"
+    - echo $SECRET
 EOF
   echo "----------End----------"
 }
