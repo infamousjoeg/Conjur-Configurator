@@ -8,3 +8,4 @@
 *.pem
 users_api.txt
 *-k8s_follower.yaml
+*-k8s.yaml
