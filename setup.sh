@@ -779,6 +779,7 @@ EOF
     echo ""
     echo "Setting internal CA and Key:"
     $container_command exec $leader_container_id bash -c "openssl genrsa -out ca.key 2048" &> /dev/null
+    $container_command exec $leader_container_id bash -c "openssl genrsa -out ca2.key 2048" &> /dev/null
     CONFIG="
 [ req ]
 distinguished_name = dn
@@ -789,13 +790,16 @@ basicConstraints = critical,CA:TRUE
 subjectKeyIdentifier   = hash
 authorityKeyIdentifier = keyid:always,issuer:always
 "
-    $container_command exec $leader_container_id bash -c "openssl req -x509 -new -nodes -key ca.key -sha1 -days 3650 -set_serial 0x0 -out ca.cert -subj "/CN=conjur.authn-k8s.prod/OU=Conjur Kubernetes CA/O=$company_name" -config <(echo "$CONFIG")" &> /dev/null
+    $container_command exec $leader_container_id bash -c "openssl req -x509 -new -nodes -key ca.key -sha1 -days 3650 -set_serial 0x0 -out ca.cert -subj "/CN=conjur.authn-k8s.cluster1/OU=Conjur Kubernetes CA/O=$company_name" -config <(echo "$CONFIG")" &> /dev/null
+    $container_command exec $leader_container_id bash -c "openssl req -x509 -new -nodes -key ca2.key -sha1 -days 3650 -set_serial 0x0 -out ca2.cert -subj "/CN=conjur.authn-k8s.cluster2/OU=Conjur Kubernetes CA/O=$company_name" -config <(echo "$CONFIG")" &> /dev/null    
     api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
     curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.key")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/cluster1/ca/key
     curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca.cert")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/cluster1/ca/cert
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca2.key")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/cluster2/ca/key
+    curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$($container_command exec $leader_container_id bash -c "cat ca2.cert")" https://localhost/secrets/$company_name/variable/conjur/authn-k8s/cluster2/ca/cert
     echo "----------Instructions----------"
-    echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s_follower.yaml>."
+    echo "Manifest file needs to be loaded into the cluser with <kubectl apply -f $company_name-k8s.yaml>."
     echo "The certificate in the conjur-connect config map needs to be updated with the follower certificate. The initial cert loaded into the config map is that of the leader. If connecting to the leader is desirned then change all of the url addresses to the leader fqdn and re-apply the manifest."
     echo ""
     echo "Once loaded, there are 3 variables in conjur that need information:"

@@ -25,3 +25,31 @@
     resource: !webservice
     privilege: [ read, authenticate ]
     role: !group consumers
+
+- !policy 
+  id: conjur/authn-k8s/cluster2
+  body:
+  - !webservice
+
+  - !variable
+    id: ca/key
+
+  - !variable 
+    id: ca/cert
+
+  - !variable 
+    id: kubernetes/service-account-token
+
+  - !variable 
+    id: kubernetes/ca-cert
+
+  - !variable 
+    id: kubernetes/api-url
+
+  - !group
+    id: consumers
+
+  - !permit
+    resource: !webservice
+    privilege: [ read, authenticate ]
+    role: !group consumers
