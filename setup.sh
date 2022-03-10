@@ -757,11 +757,13 @@ EOF
     then
       sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-1.yml
       sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-2.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-3.yml
       sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
     elif [[ "$OSTYPE" == "darwin"* ]]
     then
       sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-1.yml
       sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-2.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-3.yml
       sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
     else
       echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
@@ -775,6 +777,7 @@ EOF
     follower_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-follower-auto-configuration.yml)" https://localhost/policies/$company_name/policy/root)
     k8s_dev_team_1_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
     k8s_dev_team_2_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_3_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-3.yml)" https://localhost/policies/$company_name/policy/root)
     k8sgrants_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-grants.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Setting internal CA and Key:"

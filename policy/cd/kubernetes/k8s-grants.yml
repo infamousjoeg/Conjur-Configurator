@@ -24,6 +24,11 @@
     - !group cd/kubernetes/dev-team-2/push-to-file-apps
 
 - !grant
+  role: !group conjur/authn-k8s/cluster2/consumers
+  members:
+    - !group cd/kubernetes/dev-team-3/jwt-apps
+
+- !grant
   role: !group vault1/LOBUser1/Safe2/consumers
   members:
     - !group cd/kubernetes/dev-team-1/api-apps
@@ -38,3 +43,8 @@
     - !group cd/kubernetes/dev-team-2/k8s-secrets-apps
     - !group cd/kubernetes/dev-team-2/secretless-apps
     - !group cd/kubernetes/dev-team-2/push-to-file-apps
+
+- !grant
+  role: !group vault1/LOBUser1/Safe4/consumers
+  members:
+    - !group cd/kubernetes/dev-team-3/jwt-apps
