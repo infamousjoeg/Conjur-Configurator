@@ -1257,9 +1257,6 @@ configure_leader_container(){
         fi
         echo "Exported certificate to $config_dir/conjur-$company_name.pem"
         update_config 'ssl_cert' $config_dir/conjur-$company_name.pem
-        # echo ""
-        # echo "Configuring k8s integration, AWS authenticator, OIDC authenticator, Azure authenticator, and JWT for Jenkins."
-        # $container_command exec $leader_container_id evoke variable set CONJUR_AUTHENTICATORS authn-k8s/prod,authn-iam/prod,authn-azure/prod,authn-oidc/provider,authn-jwt/jenkins &> /dev/null
         echo ""
         echo "Setting log level to debug"
         $container_command exec $leader_container_id evoke variable set CONJUR_LOG_LEVEL debug &> /dev/null
