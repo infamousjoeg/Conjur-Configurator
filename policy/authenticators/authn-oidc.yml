@@ -1,5 +1,5 @@
 - !policy
-  id: conjur/authn-oidc/provider
+  id: conjur/authn-oidc/provider1
   body:
   - !webservice
     annotations:
@@ -12,16 +12,11 @@
     id: id-token-user-property
 
   - !group
-    id: users
+    id: consumers
     annotations:
       description: Group of users who can authenticate using the authn-oidc/<service-id> authenticator
 
   - !permit
-    role: !group users
+    role: !group consumers
     privilege: [ read, authenticate ]
     resource: !webservice
-
-  - !grant
-    role: !group users
-    members: 
-      - !group /admins
