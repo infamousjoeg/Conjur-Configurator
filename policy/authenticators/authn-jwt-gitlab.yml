@@ -1,3 +1,4 @@
+# This policy defines a JWT authenticator to be used with an instance of Gitlab
 - !policy
   id: conjur/authn-jwt/gitlab1
   body:

@@ -1326,11 +1326,11 @@ policy_load_rest(){
     echo "Getting Auth token"
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
     echo "Loading root policy."
-    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root.yml)" https://localhost/policies/$company_name/policy/root)
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/root.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading secrets policy."
-    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/secrets.yml)" https://localhost/policies/$company_name/policy/root)
+    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/secrets.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading users policy."
-    users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/users.yml)" https://localhost/policies/$company_name/policy/root)
+    users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/users.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Creating dummy secrets"
     for (( count=1; count<=8; count++ ))
