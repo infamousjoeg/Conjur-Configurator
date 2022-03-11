@@ -1,5 +1,5 @@
 - !policy
-  id: conjur/authn-jwt/jenkins
+  id: conjur/authn-jwt/jenkins1
   body:
   - !webservice
 

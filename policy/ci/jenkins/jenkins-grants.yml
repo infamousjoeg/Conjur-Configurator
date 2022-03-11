@@ -1,5 +1,5 @@
 - !grant
-  role: !group conjur/authn-jwt/jenkins/consumers
+  role: !group conjur/authn-jwt/jenkins1/consumers
   members: 
     - !group ci/jenkins/projects/dev-team-1-jobs
     - !group ci/jenkins/projects/dev-team-1-folder

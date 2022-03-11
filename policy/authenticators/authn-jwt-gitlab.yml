@@ -1,5 +1,5 @@
 - !policy
-  id: conjur/authn-jwt/gitlab
+  id: conjur/authn-jwt/gitlab1
   body:
   - !webservice
 

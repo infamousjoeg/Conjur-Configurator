@@ -1,5 +1,5 @@
 - !grant
-  role: !group conjur/authn-jwt/gitlab/consumers
+  role: !group conjur/authn-jwt/gitlab1/consumers
   members: 
     - !group ci/gitlab/projects/dev-team-1-jobs
     - !group ci/gitlab/projects/dev-team-2-jobs

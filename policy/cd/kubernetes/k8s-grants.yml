@@ -8,7 +8,6 @@
     - !group cd/kubernetes/k8s-follower-auto-configuration/cluster1
 
 
-
 #Grants access to the follower account to authenticate itself with authn-k8s/cluster1
 
 - !grant

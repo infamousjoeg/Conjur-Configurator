@@ -864,7 +864,7 @@ jenkins_jwt(){
   echo ""
   echo "Conjur JWT Authentication"
   echo "Enable JWT Key Set endpoint? - checked"
-  echo "Auth WebServiceID - authn-jwt/jenkins"
+  echo "Auth WebServiceID - authn-jwt/jenkins1"
   echo "JWT Audience - https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
   echo "Signing Key Lifetime In Minutes - 5"
   echo "JWT Token Duration In Seconds - 60"
@@ -923,7 +923,7 @@ test1:
   stage: test
   script:
     - echo "Authenticating to Conjur"
-    - TOKEN=\$(curl -k --request POST 'https://$conjur_address/authn-jwt/gitlab/$company_name/authenticate' --header 'Content-Type:application/x-www-form-urlencoded' --header "Accept-Encoding:base64" --data-urlencode "jwt=$CI_JOB_JWT")
+    - TOKEN=\$(curl -k --request POST 'https://$conjur_address/authn-jwt/gitlab1/$company_name/authenticate' --header 'Content-Type:application/x-www-form-urlencoded' --header "Accept-Encoding:base64" --data-urlencode "jwt=$CI_JOB_JWT")
     - echo "Here is the access token:"
     - echo \$TOKEN
     - echo ""
