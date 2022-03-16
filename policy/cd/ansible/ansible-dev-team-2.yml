@@ -13,6 +13,23 @@
     body:
     - !host
       id: app1
-
+      annotations:
+        team: dev-team-2
+        ansible: true
+        location: datacenter1
+        environment: test
+        
     - !host
       id: app2
+      annotations:
+        team: dev-team-2
+        ansible: true
+        location: azure
+        environment: prod
+  
+  - !permit
+    role: !group devs
+    privileges:
+        - read
+        - update
+    resource: !policy apps

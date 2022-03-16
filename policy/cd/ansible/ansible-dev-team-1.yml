@@ -6,13 +6,30 @@
   
   - !group
     id: managers
-  
+
   - !policy
     id: apps
     owner: !group managers
     body:
     - !host
       id: app1
-
+      annotations:
+        team: dev-team-1
+        ansible: true
+        location: datacenter3
+        environment: test
+        
     - !host
       id: app2
+      annotations:
+        team: dev-team-1
+        ansible: true
+        location: gcp
+        environment: prod
+  
+  - !permit
+    role: !group devs
+    privileges:
+        - read
+        - update
+    resource: !policy apps
