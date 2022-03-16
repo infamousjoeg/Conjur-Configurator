@@ -1,5 +1,5 @@
 - !policy
-  id: ci/gitlab/dev-team-1
+  id: cd/ansible/dev-team-1
   body:
   - !group
     id: devs

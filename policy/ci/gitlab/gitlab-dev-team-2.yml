@@ -1,3 +1,8 @@
 - !policy
   id: ci/gitlab/dev-team-2
   body:
+  - !group
+    id: devs
+  
+  - !group
+    id: managers

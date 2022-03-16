@@ -1,0 +1,3 @@
+- !policy
+  id: cloud/aws/dev-team-1
+  body:

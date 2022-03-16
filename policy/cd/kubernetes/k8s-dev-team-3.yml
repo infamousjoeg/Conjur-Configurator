@@ -13,6 +13,12 @@
 - !policy
   id: cd/kubernetes/dev-team-3
   body:
+  - !group
+    id: devs
+  
+  - !group
+    id: managers
+    
   - &dev_team_3_jwt_apps
     - !host
       id: jwt-app1

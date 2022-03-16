@@ -1,0 +1,3 @@
+- !policy
+  id: cloud/gcp/dev-team-2
+  body:

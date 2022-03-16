@@ -13,6 +13,12 @@
 - !policy
   id: cd/kubernetes/dev-team-2
   body:
+  - !group
+    id: devs
+  
+  - !group
+    id: managers
+
   - &dev_team_1_api_apps
     - !host
       id: api-app1
