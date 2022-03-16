@@ -6,3 +6,13 @@
   
   - !group
     id: managers
+
+  - !policy
+    id: apps
+    owner: !group managers
+    body:
+    - !host
+      id: app1
+
+    - !host
+      id: app2
