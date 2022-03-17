@@ -1330,6 +1330,8 @@ policy_load_rest(){
     root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/root.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading secrets policy."
     secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/secrets.yml)" https://localhost/policies/$company_name/policy/root)
+    echo "loading root permits policy."
+    permits_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/root-permits.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Creating dummy secrets"
     for (( count=1; count<=8; count++ ))

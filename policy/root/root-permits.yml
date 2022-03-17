@@ -1,0 +1,9 @@
+- !permit
+  role: !group /conjur-admins
+  privileges: [ read, create, update ]
+  resource: !policy root
+
+- !permit
+  role: !group /conjur-auditors
+  privileges: [ read ]
+  resource: !policy root
