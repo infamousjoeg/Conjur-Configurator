@@ -1,0 +1,23 @@
+- !policy
+  id: cd/ansible/automation-controller-team-1
+  body:
+  - !group
+    id: ops
+
+  - &users
+    - !user 
+      id: Jared
+  
+  - !grant
+    role: !group ops
+    members: *users
+  
+  - !group
+    id: managers
+
+  - &managers
+    - !user Keith 
+
+  - !grant
+    role: !group managers
+    members: *managers

@@ -1,0 +1,40 @@
+- !policy
+  id: cd/ansible/dev-team-1/applications
+  owner: !group /cd/ansible/dev-team-1/managers 
+  body:
+  - &test_environment
+    - !host
+      id: app1
+      annotations:
+        team: dev-team-1
+        ansible: true
+        location: datacenter3
+        environment: test
+
+  - !group test-apps
+
+  - !grant
+    role: !group test-apps
+    members: *test_environment
+      
+  - &production_environment
+    - !host
+      id: app2
+      annotations:
+        team: dev-team-1
+        ansible: true
+        location: gcp
+        environment: prod
+  
+  - !group prod-apps
+
+  - !grant
+    role: !group prod-apps
+    members: *production_environment
+
+  - !permit
+    role: !group /cd/ansible/dev-team-1/devs
+    privileges:
+        - read
+        - update
+    resource: !policy
