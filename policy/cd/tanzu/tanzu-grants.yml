@@ -1,0 +1,13 @@
+# Grants for Tanzu apps can't be created until the service-broker populates the policies. 
+
+# - !grant:
+#   role: !group vault1/LOBUser1/Safe6/consumers
+#   resources:
+#     - !host cd/tanzu/dev-team-1/foundation1/<<org guid>>/<<space guid>>/<<app guid>>
+#     - !host cd/tanzu/dev-team-1/foundation2/<<org guid>>/<<space guid>>/<<app guid>>
+
+# - !grant:
+#   role: !group vault1/LOBUser1/Safe1/consumers
+#   resources:
+#     - !host cd/tanzu/dev-team-2/foundation1/<<org guid>>/<<space guid>>/<<app guid>>
+#     - !host cd/tanzu/dev-team-2/foundation2/<<org guid>>/<<space guid>>/<<app guid>>

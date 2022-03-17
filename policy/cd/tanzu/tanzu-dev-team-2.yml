@@ -1,8 +1,51 @@
 - !policy
-  id: cd/tanzu/dev-team-2
+  id: cd/tanzu/dev-team-1
   body:
   - !group
     id: devs
   
   - !group
     id: managers
+
+  - &service_brokers
+    - !host
+      id: conjur-service-broker-foundation1
+      annotations:
+        platform: tanzu
+    
+    - !host
+      id: conjur-service-broker-foundation2
+      annotations:
+        platform: tanzu
+  
+  - !group conjur-service-brokers
+
+  - !grant
+    role: !group conjur-service-brokers
+    resources: *service_brokers
+
+  # this policy will be automatically populated by the service-broker once an application is bound
+  - !policy
+    id: foundation1
+    owner: managers
+    body:
+
+  # this policy will be automatically populated by the service-broker once an application is bound
+  - !policy
+    id: foundation2
+    owner: managers
+    body:
+
+  - !permit
+    role: !group devs
+    privileges: [ read, update ]
+    resources:
+      - !policy foundation1
+      - !policy foundation2
+
+  - !permit
+    role: !group conjur-service-brokers
+    privileges: [ read, update, create ]
+    resources:
+      - !policy foundation1
+      - !policy foundation2
