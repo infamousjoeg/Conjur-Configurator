@@ -3,9 +3,24 @@
   body:
   - !group
     id: ops
+
+  - &users
+    - !user 
+      id: Jared
+  
+  - !grant
+    role: !group ops
+    members: *users
   
   - !group
     id: managers
+
+  - &managers
+    - !user Evan 
+
+  - !grant
+    role: !group managers
+    members: *managers
 
   - !policy
     id: controllers
