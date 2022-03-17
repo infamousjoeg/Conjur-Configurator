@@ -6,3 +6,19 @@
   
   - !group
     id: managers
+
+  - &dev_users
+    - !user
+      id: John
+  
+  - !grant
+    role: !group devs
+    members: *dev_users
+
+  - &manager_users
+    - !user
+      id: Peter
+    
+    - !grant
+      role: !group managers
+      members: *manager_users
