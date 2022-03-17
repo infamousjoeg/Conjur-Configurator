@@ -1,0 +1,57 @@
+- !policy
+  id: cd/ansible/automation-controller-team-1
+  body:
+  - !group
+    id: ops
+  
+  - !group
+    id: managers
+
+  - !policy
+    id: controllers
+    owner: !group managers
+    body:
+    - &test_environment
+      - !host
+        id: boise-controller
+        annotations:
+          team: automation-controller-team-1
+          ansible: true
+          location: datacenter9
+          environment: test
+  
+    - !group test_controllers
+
+    - !grant
+      role: !group test_controllers
+      members: *test_environment
+        
+    - &production_environment
+      - !host
+        id: aws-controller
+        annotations:
+          team: automation-controller-team-1
+          ansible: true
+          location: aws
+          environment: prod
+
+      - !host
+        id: onprem-controller
+        annotations:
+          team: automation-controller-team-1
+          ansible: true
+          location: datacenter7
+          environment: prod
+    
+    - !group prod_controllers
+
+    - !grant
+      role: !group prod_controllers
+      members: *production_environment
+  
+  - !permit
+    role: !group ops
+    privileges:
+        - read
+        - update
+    resource: !policy controllers

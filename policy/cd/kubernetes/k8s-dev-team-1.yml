@@ -18,70 +18,79 @@
   
   - !group
     id: managers
+
+  - !policy
+    id: applications
+    owner: !group managers
+    body:
+    - &dev_team_1_api_apps
+      - !host
+        id: api-app1
+        annotations:
+          authn-k8s/namespace: conjur
+          authn-k8s/deployment: api-app1
+          authn-k8s/authentication-container-name: authenticator
     
-  - &dev_team_1_api_apps
-    - !host
-      id: api-app1
-      annotations:
-        authn-k8s/namespace: conjur
-        authn-k8s/deployment: api-app1
-        authn-k8s/authentication-container-name: authenticator
-  
-  - !group
-    id: api-apps
+    - !group
+      id: api-apps
 
-  - !grant
-    role: !group api-apps
-    members: *dev_team_1_api_apps
-  
-  - &dev_team_1_secrets_provider_apps
-    - !host
-      id: k8s-secrets-app1
-      annotations:
-        authn-k8s/namespace: conjur
-        authn-k8s/service-account: k8s-secrets-provider-account
-        authn-k8s/authentication-container-name: k8s-secrets-provider
+    - !grant
+      role: !group api-apps
+      members: *dev_team_1_api_apps
     
-    - !host
-      id: k8s-secrets-app2
-      annotations:
-        authn-k8s/namespace: conjur
-        authn-k8s/service-account: k8s-secrets-provider-account
-        authn-k8s/authentication-container-name: k8s-secrets-provider-namespace
-  
-  - !group
-    id: k8s-secrets-apps
+    - &dev_team_1_secrets_provider_apps
+      - !host
+        id: k8s-secrets-app1
+        annotations:
+          authn-k8s/namespace: conjur
+          authn-k8s/service-account: k8s-secrets-provider-account
+          authn-k8s/authentication-container-name: k8s-secrets-provider
+      
+      - !host
+        id: k8s-secrets-app2
+        annotations:
+          authn-k8s/namespace: conjur
+          authn-k8s/service-account: k8s-secrets-provider-account
+          authn-k8s/authentication-container-name: k8s-secrets-provider-namespace
+    
+    - !group
+      id: k8s-secrets-apps
 
-  - !grant
-    role: !group k8s-secrets-apps
-    members: *dev_team_1_secrets_provider_apps
+    - !grant
+      role: !group k8s-secrets-apps
+      members: *dev_team_1_secrets_provider_apps
 
-  - &dev_team_1_secretless_apps
-    - !host
-      id: secretless-app1
-      annotations:
-        authn-k8s/namespace: conjur
-        authn-k8s/service-account: secretless-account
-        authn-k8s/authentication-container-name: secretless
-  
-  - !group
-    id: secretless-apps
+    - &dev_team_1_secretless_apps
+      - !host
+        id: secretless-app1
+        annotations:
+          authn-k8s/namespace: conjur
+          authn-k8s/service-account: secretless-account
+          authn-k8s/authentication-container-name: secretless
+    
+    - !group
+      id: secretless-apps
 
-  - !grant
-    role: !group secretless-apps
-    members: *dev_team_1_secretless_apps
+    - !grant
+      role: !group secretless-apps
+      members: *dev_team_1_secretless_apps
 
-  - &dev_team_1_push_to_file_apps
-    - !host
-      id: push-to-file-app1
-      annotations:
-        authn-k8s/namespace: conjur
-        authn-k8s/service-account: k8s-secrets-provider-push-to-file-account
-        authn-k8s/authentication-container-name: push-to-file
-  
-  - !group
-    id: push-to-file-apps
+    - &dev_team_1_push_to_file_apps
+      - !host
+        id: push-to-file-app1
+        annotations:
+          authn-k8s/namespace: conjur
+          authn-k8s/service-account: k8s-secrets-provider-push-to-file-account
+          authn-k8s/authentication-container-name: push-to-file
+    
+    - !group
+      id: push-to-file-apps
 
-  - !grant
-    role: !group push-to-file-apps
-    members: *dev_team_1_push_to_file_apps
+    - !grant
+      role: !group push-to-file-apps
+      members: *dev_team_1_push_to_file_apps
+
+  - !permit
+    role: !group devs
+    privileges: [ read, update ]
+    resource: !policy applications

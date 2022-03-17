@@ -13,37 +13,37 @@
 - !grant
   role: !group conjur/authn-k8s/cluster1/consumers
   members:
-    - !group cd/kubernetes/dev-team-1/api-apps
-    - !group cd/kubernetes/dev-team-1/k8s-secrets-apps
-    - !group cd/kubernetes/dev-team-1/secretless-apps
-    - !group cd/kubernetes/dev-team-1/push-to-file-apps
-    - !group cd/kubernetes/dev-team-2/api-apps
-    - !group cd/kubernetes/dev-team-2/k8s-secrets-apps
-    - !group cd/kubernetes/dev-team-2/secretless-apps
-    - !group cd/kubernetes/dev-team-2/push-to-file-apps
+    - !group cd/kubernetes/dev-team-1/applications/api-apps
+    - !group cd/kubernetes/dev-team-1/applications/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-1/applications/secretless-apps
+    - !group cd/kubernetes/dev-team-1/applications/push-to-file-apps
+    - !group cd/kubernetes/dev-team-2/applications/api-apps
+    - !group cd/kubernetes/dev-team-2/applications/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-2/applications/secretless-apps
+    - !group cd/kubernetes/dev-team-2/applications/push-to-file-apps
 
 - !grant
   role: !group conjur/authn-k8s/cluster2/consumers
   members:
-    - !group cd/kubernetes/dev-team-3/jwt-apps
+    - !group cd/kubernetes/dev-team-3/applications/jwt-apps
 
 - !grant
   role: !group vault1/LOBUser1/Safe2/consumers
   members:
-    - !group cd/kubernetes/dev-team-1/api-apps
-    - !group cd/kubernetes/dev-team-1/k8s-secrets-apps
-    - !group cd/kubernetes/dev-team-1/secretless-apps
-    - !group cd/kubernetes/dev-team-1/push-to-file-apps
+    - !group cd/kubernetes/dev-team-1/applications/api-apps
+    - !group cd/kubernetes/dev-team-1/applications/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-1/applications/secretless-apps
+    - !group cd/kubernetes/dev-team-1/applications/push-to-file-apps
 
 - !grant
   role: !group vault1/LOBUser1/Safe3/consumers
   members:
-    - !group cd/kubernetes/dev-team-2/api-apps
-    - !group cd/kubernetes/dev-team-2/k8s-secrets-apps
-    - !group cd/kubernetes/dev-team-2/secretless-apps
-    - !group cd/kubernetes/dev-team-2/push-to-file-apps
+    - !group cd/kubernetes/dev-team-2/applications/api-apps
+    - !group cd/kubernetes/dev-team-2/applications/k8s-secrets-apps
+    - !group cd/kubernetes/dev-team-2/applications/secretless-apps
+    - !group cd/kubernetes/dev-team-2/applications/push-to-file-apps
 
 - !grant
   role: !group vault1/LOBUser1/Safe4/consumers
   members:
-    - !group cd/kubernetes/dev-team-3/jwt-apps
+    - !group cd/kubernetes/dev-team-3/applications/jwt-apps

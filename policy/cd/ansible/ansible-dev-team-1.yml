@@ -11,21 +11,35 @@
     id: apps
     owner: !group managers
     body:
-    - !host
-      id: app1
-      annotations:
-        team: dev-team-1
-        ansible: true
-        location: datacenter3
-        environment: test
+    - &test_environment
+      - !host
+        id: app1
+        annotations:
+          team: dev-team-1
+          ansible: true
+          location: datacenter3
+          environment: test
+  
+    - !group test_apps
+
+    - !grant
+      role: !group test_apps
+      members: *test_environment
         
-    - !host
-      id: app2
-      annotations:
-        team: dev-team-1
-        ansible: true
-        location: gcp
-        environment: prod
+    - &production_environment
+      - !host
+        id: app2
+        annotations:
+          team: dev-team-1
+          ansible: true
+          location: gcp
+          environment: prod
+    
+    - !group prod_apps
+
+    - !grant
+      role: !group prod_apps
+      members: *production_environment
   
   - !permit
     role: !group devs

@@ -472,7 +472,7 @@ spec:
               name: conjur-connect
         env:
           - name: CONJUR_AUTHN_LOGIN
-            value: "host/cd/kubernetes/dev-team-1/api-app1"
+            value: "host/cd/kubernetes/dev-team-1/applications/api-app1"
           - name: MY_POD_NAME
             valueFrom:
               fieldRef:
@@ -597,7 +597,7 @@ spec:
               fieldRef:
                 fieldPath: status.podIP
           - name: CONJUR_AUTHN_LOGIN
-            value: "host/cd/kubernetes/dev-team-1/k8s-secrets-app1"
+            value: "host/cd/kubernetes/dev-team-1/applications/k8s-secrets-app1"
           - name: SECRETS_DESTINATION
             value: k8s_secrets
           - name: K8S_SECRETS
@@ -665,7 +665,7 @@ spec:
                   fieldRef:
                     fieldPath: status.podIP
               - name: CONJUR_AUTHN_LOGIN
-                value: "host/cd/kubernetes/dev-team-1/k8s-secrets-app2"
+                value: "host/cd/kubernetes/dev-team-1/applications/k8s-secrets-app2"
               - name: SECRETS_DESTINATION
                 value: k8s_secrets
               - name: K8S_SECRETS
@@ -697,7 +697,7 @@ spec:
       labels:
         app: conjur-push-to-file
       annotations:
-        conjur.org/authn-identity: "host/cd/kubernetes/dev-team-1/push-to-file-app1"
+        conjur.org/authn-identity: "host/cd/kubernetes/dev-team-1/applications/push-to-file-app1"
         conjur.org/container-mode: sidecar
         conjur.org/secrets-destination: file
         conjur.org/conjur-secrets-policy-path.safe-2: vault1/LOBUser1/Safe2/

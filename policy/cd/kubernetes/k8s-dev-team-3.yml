@@ -18,18 +18,27 @@
   
   - !group
     id: managers
-    
-  - &dev_team_3_jwt_apps
-    - !host
-      id: jwt-app1
-      annotations:
-        authn-k8s/namespace: conjur
-        authn-k8s/deployment: jwt-app1
-        authn-k8s/authentication-container-name: authenticator
-  
-  - !group
-    id: jwt-apps
 
-  - !grant
-    role: !group jwt-apps
-    members: *dev_team_3_jwt_apps
+  - !policy
+    id: applications
+    owner: !group managers
+    body:
+    - &dev_team_3_jwt_apps
+      - !host
+        id: jwt-app1
+        annotations:
+          authn-k8s/namespace: conjur
+          authn-k8s/deployment: jwt-app1
+          authn-k8s/authentication-container-name: authenticator
+    
+    - !group
+      id: jwt-apps
+
+    - !grant
+      role: !group jwt-apps
+      members: *dev_team_3_jwt_apps
+
+  - !permit
+    role: !group devs
+    privileges: [ read, update ]
+    resource: !policy applications
