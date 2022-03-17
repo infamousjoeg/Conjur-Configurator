@@ -20,10 +20,10 @@
           location: datacenter9
           environment: test
   
-    - !group test_controllers
+    - !group test-controllers
 
     - !grant
-      role: !group test_controllers
+      role: !group test-controllers
       members: *test_environment
         
     - &production_environment
@@ -43,10 +43,10 @@
           location: datacenter7
           environment: prod
     
-    - !group prod_controllers
+    - !group prod-controllers
 
     - !grant
-      role: !group prod_controllers
+      role: !group prod-controllers
       members: *production_environment
   
   - !permit

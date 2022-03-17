@@ -20,10 +20,10 @@
           location: datacenter3
           environment: test
   
-    - !group test_apps
+    - !group test-apps
 
     - !grant
-      role: !group test_apps
+      role: !group test-apps
       members: *test_environment
         
     - &production_environment
@@ -35,10 +35,10 @@
           location: gcp
           environment: prod
     
-    - !group prod_apps
+    - !group prod-apps
 
     - !grant
-      role: !group prod_apps
+      role: !group prod-apps
       members: *production_environment
   
   - !permit

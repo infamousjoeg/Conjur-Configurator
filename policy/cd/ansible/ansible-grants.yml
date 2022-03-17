@@ -1,0 +1,21 @@
+- !grant
+  role: !group vault1/LOBUser1/Safe7/consumers
+  members:
+    - !group cd/ansible/dev-team-1/applications/test-apps
+    - !group cd/ansible/dev-team-2/applications/test-apps
+
+- !grant
+  role: !group vault1/LOBUser1/Safe3/consumers
+  members:
+    - !group cd/ansible/dev-team-1/applications/prod-apps
+    - !group cd/ansible/dev-team-2/applications/prod-apps
+
+- !grant
+  role: !group vault1/LOBUser1/Safe4/consumers
+  members:
+    - !group cd/ansible/automation-controller-team-1/controllers/test-controllers
+
+- !grant
+  role: !group vault1/LOBUser1/Safe6/consumers
+  members:
+    - !group cd/ansible/automation-controller-team-1/controllers/prod-controllers
