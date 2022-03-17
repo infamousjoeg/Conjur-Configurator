@@ -1,0 +1,38 @@
+- &auditors
+  - !user
+    id: mark
+    annotations:
+      first_name: Mark
+      last_name: Hurter
+      full_name: Mark Hurter
+      email: mark.hurter@cyberark.com
+      title: DevSecOps Sales Overlay
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: rob
+    annotations:
+      first_name: Rob
+      last_name: Patrick
+      full_name: Rob Patrick
+      email: rob.patrick@cyberark.com
+      title: DevSecOps Sales Overlay
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: james
+    annotations:
+      first_name: James
+      last_name: Creamer
+      full_name: James Creamer
+      email: james.creamer@cyberark.com
+      title: PAS Programs Architect
+      company: CyberArk
+      cyberark: true
+
+- !group
+  id: conjur-auditors
+
+- !grant
+  role: !group conjur-auditors
+  members: *auditors

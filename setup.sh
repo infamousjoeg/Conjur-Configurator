@@ -1322,12 +1322,14 @@ policy_load_rest(){
     api_key=$(curl -k -s -X GET -u admin:$admin_password https://localhost/authn/$company_name/login)
     echo "Getting Auth token"
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
+    echo "loading Conjur Admins policy."
+    admin_users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/conjur-admins.yml)" https://localhost/policies/$company_name/policy/root)
+    echo "loading Conjur auditors policy."
+    auditors_users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/conjur-auditors.yml)" https://localhost/policies/$company_name/policy/root)    
     echo "Loading root policy."
     root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/root.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading secrets policy."
     secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/secrets.yml)" https://localhost/policies/$company_name/policy/root)
-    echo "loading users policy."
-    users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/users.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Creating dummy secrets"
     for (( count=1; count<=8; count++ ))
@@ -1340,11 +1342,15 @@ policy_load_rest(){
       done
     done
     echo ""
-    echo "Here are the users that were created:"
-    echo $users_policy_output
-    echo $users_policy_output > $PWD/users_api.txt
+    echo "Here are the admin users that were created:"
+    echo $admin_users_policy_output
+    echo $admin_users_policy_output > $PWD/admin_users_api.txt
+    echo "Created text file with user information at $PWD/admin_users_api.txt"
     echo ""
-    echo "Created text file with user information at $PWD/users_api.txt"
+    echo "Here are the auditor users that were created:"
+    echo $auditors_users_policy_output
+    echo $aduitors_users_policy_output > $PWD/auditors_users_api.txt
+    echo "Created text file with user information at $PWD/auditors_users_api.txt"
   else
     echo "Master is unhealthy"
     echo "Returning to Main Menu."

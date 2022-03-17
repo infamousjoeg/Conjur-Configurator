@@ -1,0 +1,127 @@
+- &admins
+  - !user
+    id: joe
+    annotations:
+      first_name: Joe
+      last_name: Garcia
+      full_name: Joe Garcia
+      email: joe.garcia@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: darren
+    annotations:
+      first_name: Darren
+      last_name: Khan
+      full_name: Darren Khan
+      email: darren.khan@cyberark.com
+      title: Senior DevSecOps SME
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: jeremy
+    annotations:
+      first_name: Jeremy
+      last_name: Patton
+      full_name: Jeremy Patton
+      email: jeremy.patton@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: jody
+    annotations:
+      first_name: Jody
+      last_name: Hunt
+      full_name: Jody Hunt
+      email: jody.hunt@cyberark.com
+      title: Senior DevSecOps SME
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: dennis
+    annotations:
+      first_name: Dennis
+      last_name: Mastin
+      full_name: Dennis Mastin
+      email: dennis.mastin@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: garnet
+    annotations:
+      first_name: Garnet
+      last_name: Merrill
+      full_name: Garnet Merrill
+      email: garnet.merrill@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: quincy
+    annotations:
+      first_name: Quincy
+      last_name: Cheng
+      full_name: Quincy Cheng
+      email: quincy.cheng@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: amine
+    annotations:
+      first_name: Amine
+      last_name: Al Oumami
+      full_name: Amine Al Oumami
+      email: amine.aloumami@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: arron
+    annotations:
+      first_name: Arron
+      last_name: Thundercliffe
+      full_name: Arron Thundercliffe
+      email: arron.thundercliffe@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: aslan
+    annotations:
+      first_name: Aslan
+      last_name: Ramos
+      full_name: Aslan Ramos
+      email: aslan.ramos@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: tudor
+    annotations:
+      first_name: Tudor
+      last_name: Urdes
+      full_name: Tudor Urdes
+      email: tudor.urdes@cyberark.com
+      title: DevOps Security Engineer
+      company: CyberArk
+      cyberark: true
+  - !user
+    id: evan
+    annotations:
+      first_name: Evan
+      last_name: Litwak
+      full_name: Evan Litwak
+      email: evan.litwak@cyberark.com
+      title: Sr Director, DevSecOps Solutions Strategy
+      company: CyberArk
+      cyberark: true
+
+- !group conjur-admins
+
+- !grant
+  role: !group conjur-admins
+  members: *admins
