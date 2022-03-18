@@ -4,6 +4,22 @@
   body:
   - !group
     id: devs
+
+  - &dev_users
+    - !user
+      id: Alex
+  
+  - !grant
+    role: !group devs
+    members: *dev_users
   
   - !group
     id: managers
+
+  - &manager_users
+    - !user
+      id: Amos
+
+  - !grant
+    role: !group managers
+    members: *manager_users

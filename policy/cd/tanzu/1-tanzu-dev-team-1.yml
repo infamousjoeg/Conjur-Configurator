@@ -4,9 +4,25 @@
   body:
   - !group
     id: devs
+
+  - &dev_users
+    - !user
+      id: Donny
+  
+  - !grant
+    role: !group devs
+    members: *dev_users
   
   - !group
     id: managers
+
+  - &manager_users
+    - !user
+      id: Kelli
+
+  - !grant
+    role: !group managers
+    members: *manager_users
 
   - &service_brokers
     - !host
