@@ -9,6 +9,7 @@
 #     authn-k8s/stateful-set: <stateful-set name>
 #     authn-k8s/service-account: <service account of the app>
 #     authn-k8s/authentication-container-name: <name of the authenticator container in the application pod>
+
 ---
 - !policy
   id: cd/kubernetes/k8s-follower-auto-configuration/cluster1

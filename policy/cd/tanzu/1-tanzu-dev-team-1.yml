@@ -1,0 +1,26 @@
+---
+- !policy
+  id: cd/tanzu/dev-team-1
+  body:
+  - !group
+    id: devs
+  
+  - !group
+    id: managers
+
+  - &service_brokers
+    - !host
+      id: conjur-service-broker-foundation1
+      annotations:
+        platform: tanzu
+    
+    - !host
+      id: conjur-service-broker-foundation2
+      annotations:
+        platform: tanzu
+  
+  - !group conjur-service-brokers
+
+  - !grant
+    role: !group conjur-service-brokers
+    resources: *service_brokers

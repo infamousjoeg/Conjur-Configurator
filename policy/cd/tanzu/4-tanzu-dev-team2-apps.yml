@@ -1,0 +1,21 @@
+---
+# this policy will be automatically populated by the service-broker once an application is bound
+- &policies
+  - !policy
+    id: cd/tanzu/dev-team-2/foundation1
+    owner: !group /cd/tanzu/dev-team-2/managers
+
+  # this policy will be automatically populated by the service-broker once an application is bound
+  - !policy
+    id: cd/tanzu/dev-team2/foundation2
+    owner: !group /cd/tanzu/dev-team-2/managers
+
+- !permit
+  role: !group /cd/tanzu/dev-team-2/devs
+  privileges: [ read, update ]
+  resources: *policies
+
+- !permit
+  role: !group /cd/tanzu/dev-team-2/conjur-service-brokers
+  privileges: [ read, update, create ]
+  resources: *policies

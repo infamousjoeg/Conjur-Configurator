@@ -1,3 +1,4 @@
+---
 - !policy
   id: cd/ansible/automation-controller-team-1/controllers
   owner: !group /cd/ansible/automation-controller-team-1/managers

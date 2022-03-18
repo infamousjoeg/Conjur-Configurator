@@ -1,0 +1,9 @@
+---
+- !policy
+  id: cd/kubernetes/dev-team-3
+  body:
+  - !group
+    id: devs
+  
+  - !group
+    id: managers

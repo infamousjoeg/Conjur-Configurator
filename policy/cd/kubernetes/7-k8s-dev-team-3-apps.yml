@@ -10,35 +10,27 @@
 #     authn-k8s/service-account: <service account of the app>
 #     authn-k8s/authentication-container-name: <name of the authenticator container in the application pod>
 
+---
 - !policy
-  id: cd/kubernetes/dev-team-3
+  id: cd/kubernetes/dev-team-3/applications
+  owner: !group managers
   body:
-  - !group
-    id: devs
+  - &dev_team_3_jwt_apps
+    - !host
+      id: jwt-app1
+      annotations:
+        authn-k8s/namespace: conjur
+        authn-k8s/deployment: jwt-app1
+        authn-k8s/authentication-container-name: authenticator
   
   - !group
-    id: managers
+    id: jwt-apps
 
-  - !policy
-    id: applications
-    owner: !group managers
-    body:
-    - &dev_team_3_jwt_apps
-      - !host
-        id: jwt-app1
-        annotations:
-          authn-k8s/namespace: conjur
-          authn-k8s/deployment: jwt-app1
-          authn-k8s/authentication-container-name: authenticator
-    
-    - !group
-      id: jwt-apps
-
-    - !grant
-      role: !group jwt-apps
-      members: *dev_team_3_jwt_apps
+  - !grant
+    role: !group jwt-apps
+    members: *dev_team_3_jwt_apps
 
   - !permit
-    role: !group devs
+    role: !group /cd/kubernetes/dev-team-3/devs
     privileges: [ read, update ]
-    resource: !policy applications
+    resource: !policy

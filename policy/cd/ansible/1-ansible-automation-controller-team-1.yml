@@ -1,3 +1,4 @@
+---
 - !policy
   id: cd/ansible/automation-controller-team-1
   body:

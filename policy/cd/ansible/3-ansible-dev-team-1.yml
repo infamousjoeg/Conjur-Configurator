@@ -1,3 +1,4 @@
+---
 - !policy
   id: cd/ansible/dev-team-1
   body:
