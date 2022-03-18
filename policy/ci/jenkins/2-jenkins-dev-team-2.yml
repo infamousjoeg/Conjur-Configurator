@@ -1,0 +1,24 @@
+- !policy
+  id: ci/jenkins/dev-team-2
+  body:
+  - !group
+    id: devs
+
+  - &dev_users
+    - !user
+      id: Patrick
+  
+  - !grant
+    role: !group devs
+    members: *dev_users
+  
+  - !group
+    id: managers
+
+  - &manager_users
+    - !user
+      id: Michael
+
+  - !grant
+    role: !group managers
+    members: *manager_users

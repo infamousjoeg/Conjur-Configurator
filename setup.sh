@@ -832,16 +832,16 @@ jenkins_jwt(){
   jenkins_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-jwt-jenkins.yml)" https://localhost/policies/$company_name/policy/root)
   echo $jenkins_policy_output
   echo "Loading Dev_Team_1 policy."
-  dev_team1__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
+  dev_team1__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/1-jenkins-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
   echo $dev_team1__policy_output
   echo "Loading Dev_Team_1 policy."
-  dev_team2__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
+  dev_team2__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/2-jenkins-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
   echo $dev_team2__policy_output
   echo "Loading jenkins projects policy."
-  jenkins_projects__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-projects.yml)" https://localhost/policies/$company_name/policy/root)
+  jenkins_projects__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/3-jenkins-projects.yml)" https://localhost/policies/$company_name/policy/root)
   echo $jenkins_projects__policy_output
   echo "Loading jenkins grants policy."
-  jenkins_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/jenkins-grants.yml)" https://localhost/policies/$company_name/policy/root)
+  jenkins_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/4-jenkins-grants.yml)" https://localhost/policies/$company_name/policy/root)
   echo $jenkins_grants__policy_output
   echo "Loading JWKS value."
   curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname/jwtauth/conjur-jwk-set" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/jwks-uri
@@ -891,16 +891,16 @@ gitlab_jwt(){
   gitlab_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-jwt-gitlab.yml)" https://localhost/policies/$company_name/policy/root)
   echo $gitlab_policy_output
   echo "Loading Dev_Team_1 policy."
-  dev_team1__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
+  dev_team1__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/1-gitlab-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
   echo $dev_team1__policy_output
   echo "Loading Dev_Team_1 policy."
-  dev_team2__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
+  dev_team2__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/2-gitlab-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
   echo $dev_team2__policy_output
   echo "Loading jenkins projects policy."
-  gitlab_projects__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-projects.yml)" https://localhost/policies/$company_name/policy/root)
+  gitlab_projects__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/3-gitlab-projects.yml)" https://localhost/policies/$company_name/policy/root)
   echo $gitlab_projects__policy_output
   echo "Loading jenkins grants policy."
-  gitlab_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/gitlab-grants.yml)" https://localhost/policies/$company_name/policy/root)
+  gitlab_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/4-gitlab-grants.yml)" https://localhost/policies/$company_name/policy/root)
   echo $gitlab_grants__policy_output
   echo "Loading JWKS value."
   curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/jwks-uri

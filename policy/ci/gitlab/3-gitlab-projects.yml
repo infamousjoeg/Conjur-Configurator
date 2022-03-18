@@ -27,3 +27,23 @@
   - !grant
     role: !group dev-team-2-jobs
     members: *dev_team_2_job_hosts
+
+- !permit
+  role: !group /ci/gitlab/dev-team-1/devs
+  privileges: [ read, update ]
+  resource: !policy
+
+- !permit
+  role: !group /ci/gitlab/dev-team-2/devs
+  privileges: [ read, update ]
+  resource: !policy
+
+- !permit
+  role: !group /ci/gitlab/dev-team-1/managers
+  privileges: [ read, update, create ]
+  resource: !policy
+
+- !permit
+  role: !group /ci/gitlab/dev-team-2/managers
+  privileges: [ read, update, create ]
+  resource: !policy

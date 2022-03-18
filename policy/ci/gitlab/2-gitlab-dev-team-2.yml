@@ -1,0 +1,24 @@
+- !policy
+  id: ci/gitlab/dev-team-2
+  body:
+  - !group
+    id: devs
+
+  - &dev_users
+    - !user
+      id: Dylan
+  
+  - !grant
+    role: !group devs
+    members: *dev_users
+  
+  - !group
+    id: managers
+
+  - &manager_users
+    - !user
+      id: Jeremy
+
+  - !grant
+    role: !group managers
+    members: *manager_users
