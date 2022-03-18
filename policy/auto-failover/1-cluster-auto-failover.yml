@@ -1,0 +1,17 @@
+---
+- !policy
+    id: conjur/cluster/conjur-cluster1
+    annotations:
+      ttl: 500
+    body:
+    - !layer
+    - &hosts
+      - !host
+        id: <master_dns>
+      - !host
+        id: <standby1_dns>
+      - !host
+        id: <standby2_dns>
+    - !grant
+      role: !layer
+      member: *hosts
