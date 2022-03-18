@@ -1,3 +1,4 @@
+---
 - !policy
   id: ci/jenkins/projects
   body:

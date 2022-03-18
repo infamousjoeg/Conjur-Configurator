@@ -1,0 +1,5 @@
+---
+- !policy
+  id: cloud/gcp/dev-team-1/applications
+  owner: !group /cloud/gcp/dev-team-1/managers 
+  body:

@@ -1,0 +1,5 @@
+---
+- !policy
+  id: cloud/azure/dev-team-1/applications
+  owner: !group /cloud/azure/dev-team-1/managers 
+  body:

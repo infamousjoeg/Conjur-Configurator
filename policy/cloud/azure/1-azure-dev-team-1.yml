@@ -1,3 +1,4 @@
+---
 - !policy
   id: cloud/azure/dev-team-1
   body:

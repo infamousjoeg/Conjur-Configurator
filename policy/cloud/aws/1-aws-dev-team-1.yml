@@ -1,12 +1,13 @@
+---
 - !policy
-  id: cloud/gcp/dev-team-2
+  id: cloud/aws/dev-team-1
   body:
   - !group
     id: devs
 
   - &dev_users
     - !user
-      id: Alison
+      id: Buster
   
   - !grant
     role: !group devs
@@ -17,7 +18,7 @@
 
   - &manager_users
     - !user
-      id: Tanya
+      id: Arthur
 
   - !grant
     role: !group managers

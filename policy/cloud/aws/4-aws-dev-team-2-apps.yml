@@ -1,0 +1,5 @@
+---
+- !policy
+  id: cloud/aws/dev-team-2/applications
+  owner: !group /cloud/aws/dev-team-2/managers 
+  body:

@@ -1,12 +1,13 @@
+---
 - !policy
-  id: cloud/aws/dev-team-1
+  id: cloud/aws/dev-team-2
   body:
   - !group
     id: devs
 
   - &dev_users
     - !user
-      id: Buster
+      id: Francine
   
   - !grant
     role: !group devs
@@ -17,7 +18,7 @@
 
   - &manager_users
     - !user
-      id: Arthur
+      id: Misty
 
   - !grant
     role: !group managers
