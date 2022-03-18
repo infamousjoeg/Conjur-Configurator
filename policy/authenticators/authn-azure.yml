@@ -1,3 +1,4 @@
+---
 - !policy
   id: conjur/authn-azure/region1
   body:

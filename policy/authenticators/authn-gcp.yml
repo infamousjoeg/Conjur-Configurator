@@ -1,3 +1,4 @@
+---
 - !policy
   id: conjur/authn-gcp
   body:

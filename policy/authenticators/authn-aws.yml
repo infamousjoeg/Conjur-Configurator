@@ -1,3 +1,4 @@
+---
 - !policy
   id: conjur/authn-iam/region1
   body:

@@ -1,3 +1,4 @@
+---
 - !policy 
   id: conjur/authn-k8s/cluster1
   body:
@@ -26,6 +27,7 @@
     privilege: [ read, authenticate ]
     role: !group consumers
 
+---
 - !policy 
   id: conjur/authn-k8s/cluster2
   body:

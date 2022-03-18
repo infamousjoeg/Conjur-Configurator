@@ -1,3 +1,4 @@
+---
 - !policy
   id: conjur/authn-oidc/provider1
   body:

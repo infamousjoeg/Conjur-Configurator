@@ -1,3 +1,4 @@
+---
 - !policy
   id: conjur/authn-jwt/jenkins1
   body:
