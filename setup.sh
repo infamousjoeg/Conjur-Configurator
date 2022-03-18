@@ -1323,15 +1323,15 @@ policy_load_rest(){
     echo "Getting Auth token"
     auth_token=$(curl -k -s --header "Accept-Encoding: base64" -X POST --data $api_key https://localhost/authn/$company_name/admin/authenticate)
     echo "loading Conjur Admins policy."
-    admin_users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/conjur-admins.yml)" https://localhost/policies/$company_name/policy/root)
+    admin_users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/1-conjur-admins.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading Conjur auditors policy."
-    auditors_users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/conjur-auditors.yml)" https://localhost/policies/$company_name/policy/root)    
+    auditors_users_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/2-conjur-auditors.yml)" https://localhost/policies/$company_name/policy/root)    
     echo "Loading root policy."
-    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/root.yml)" https://localhost/policies/$company_name/policy/root)
+    root_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/3-root.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading secrets policy."
-    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/secrets.yml)" https://localhost/policies/$company_name/policy/root)
+    secrets_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/4-secrets.yml)" https://localhost/policies/$company_name/policy/root)
     echo "loading root permits policy."
-    permits_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/root-permits.yml)" https://localhost/policies/$company_name/policy/root)
+    permits_policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/root/5-root-permits.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Creating dummy secrets"
     for (( count=1; count<=8; count++ ))
