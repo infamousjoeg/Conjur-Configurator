@@ -245,7 +245,7 @@ create_k8s_yaml(){
     seedfile_dir="/tmp/seedfile"
     ssl_cert=$(sed 's/^/    /' $config_dir/conjur-$company_name.pem)
     conjurfqdn=$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)
-    cat <<EOF > $PWD/$company_name-k8s_follower.yaml
+    cat <<EOF > $PWD/$company_name-k8s.yaml
 ---
 apiVersion: v1
 kind: Namespace
@@ -756,16 +756,16 @@ EOF
     echo "Updating policy with the right namespace value of $namespace."
     if [[ "$OSTYPE" == "linux-gnu"* ]]
     then
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-1.yml
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-2.yml
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-3.yml
-      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/3-k8s-dev-team-1-apps.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/5-k8s-dev-team-2-apps.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/7-k8s-dev-team-3-apps.yml
+      sed -i'' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/1-k8s-follower-auto-configuration.yml
     elif [[ "$OSTYPE" == "darwin"* ]]
     then
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-1.yml
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-2.yml
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-dev-team-3.yml
-      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/CD/kubernetes/k8s-follower-auto-configuration.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/3-k8s-dev-team-1-apps.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/5-k8s-dev-team-2-apps.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/7-k8s-dev-team-3-apps.yml
+      sed -i '' "s~namespace: conjur.*~namespace: $namespace~" ./policy/cd/kubernetes/1-k8s-follower-auto-configuration.yml
     else
       echo "Unknown OS for using sed command. Configuration fill will not be updated!" 
     fi
@@ -775,11 +775,14 @@ EOF
     echo "Loading Kubernetes policies."
     authn_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/authn-k8s.yml)" https://localhost/policies/$company_name/policy/root)
     seed_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/authenticators/k8s-seed-fetcher.yml)" https://localhost/policies/$company_name/policy/root)
-    follower_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-follower-auto-configuration.yml)" https://localhost/policies/$company_name/policy/root)
-    k8s_dev_team_1_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
-    k8s_dev_team_2_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
-    k8s_dev_team_3_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-dev-team-3.yml)" https://localhost/policies/$company_name/policy/root)
-    k8sgrants_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/k8s-grants.yml)" https://localhost/policies/$company_name/policy/root)
+    follower_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/1-k8s-follower-auto-configuration.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_1_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/2-k8s-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_1_apps_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/3-k8s-dev-team-1-apps.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_2_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/4-k8s-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_2_apps_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/5-k8s-dev-team-2-apps.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_3_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/6-k8s-dev-team-3.yml)" https://localhost/policies/$company_name/policy/root)
+    k8s_dev_team_3_apps_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/7-k8s-dev-team-3-apps.yml)" https://localhost/policies/$company_name/policy/root)
+    k8sgrants_policy=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/cd/kubernetes/8-k8s-grants.yml)" https://localhost/policies/$company_name/policy/root)
     echo ""
     echo "Setting internal CA and Key:"
     $container_command exec $leader_container_id bash -c "openssl genrsa -out ca.key 2048" &> /dev/null
