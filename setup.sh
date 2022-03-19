@@ -244,6 +244,7 @@ create_k8s_yaml(){
     read service_name
     seedfile_dir="/tmp/seedfile"
     ssl_cert=$(sed 's/^/    /' $config_dir/conjur-$company_name.pem)
+    conjurfqdn=$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)
     cat <<EOF > $PWD/$company_name-k8s_follower.yaml
 ---
 apiVersion: v1
@@ -299,8 +300,8 @@ metadata:
   namespace: $namespace
 data:
   CONJUR_ACCOUNT: $company_name
-  CONJUR_LEADER_APPLIANCE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)"
-  CONJUR_SEED_FILE_URL: "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)/configuration/$company_name/seed/follower"
+  CONJUR_LEADER_APPLIANCE_URL: "https://$conjurfqdn"
+  CONJUR_SEED_FILE_URL: "https://$conjurfqdn/configuration/$company_name/seed/follower"
   CONJUR_AUTHN_LOGIN: "host/cd/kubernetes/k8s-follower-auto-configuration/cluster1/k8s-follower1"
   SEEDFILE_DIR: "$seedfile_dir"
   FOLLOWER_HOSTNAME: "$service_name"
@@ -321,8 +322,8 @@ metadata:
     conjur.org/name: "conjur-connect-configmap"
 data:
   CONJUR_ACCOUNT: $company_name
-  CONJUR_APPLIANCE_URL: "https://$service_name.$namespace.svc.cluster.local"
-  CONJUR_AUTHN_URL: "https://$service_name.$namespace.svc.cluster.local/authn-k8s/cluster1"
+  CONJUR_APPLIANCE_URL: "https://$conjurfqdn"
+  CONJUR_AUTHN_URL: "https://$conjurfqdn/authn-k8s/cluster1"
   CONJUR_AUTHENTICATOR_ID: "cluster1"
   CONJUR_VERSION: "5"
   CONJUR_SSL_CERTIFICATE: |- 
