@@ -39,4 +39,4 @@
 
   - !grant
     role: !group conjur-service-brokers
-    resources: *service_brokers
+    members: *service_brokers

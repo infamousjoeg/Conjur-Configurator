@@ -1,5 +1,6 @@
+---
 - !policy
-  id: cd/tanzu/dev-team-1
+  id: cd/tanzu/dev-team-2
   body:
   - !group
     id: devs
@@ -22,6 +23,7 @@
   - !grant
     role: !group managers
     members: *manager_users
+
   - &service_brokers
     - !host
       id: conjur-service-broker-foundation1
@@ -37,4 +39,4 @@
 
   - !grant
     role: !group conjur-service-brokers
-    resources: *service_brokers
+    members: *service_brokers
