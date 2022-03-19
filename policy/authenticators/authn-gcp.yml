@@ -1,6 +1,6 @@
 ---
 - !policy
-  id: conjur/authn-gcp
+  id: conjur/authn-gcp/region1
   body:
   - !webservice
 
