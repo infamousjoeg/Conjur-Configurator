@@ -838,7 +838,7 @@ jenkins_jwt(){
   echo "Loading Dev_Team_1 policy."
   dev_team1__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/1-jenkins-dev-team-1.yml)" https://localhost/policies/$company_name/policy/root)
   echo $dev_team1__policy_output
-  echo "Loading Dev_Team_1 policy."
+  echo "Loading Dev_Team_2 policy."
   dev_team2__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/2-jenkins-dev-team-2.yml)" https://localhost/policies/$company_name/policy/root)
   echo $dev_team2__policy_output
   echo "Loading jenkins projects policy."
@@ -848,15 +848,15 @@ jenkins_jwt(){
   jenkins_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/jenkins/4-jenkins-grants.yml)" https://localhost/policies/$company_name/policy/root)
   echo $jenkins_grants__policy_output
   echo "Loading JWKS value."
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname/jwtauth/conjur-jwk-set" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/jwks-uri
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname/jwtauth/conjur-jwk-set" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins1/jwks-uri
   echo "Loading identity path"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/ci/jenkins/projects" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/identity-path
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/ci/jenkins/projects" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins1/identity-path
   echo "Loading issuer"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/issuer
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$jenkins_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins1/issuer
   echo "Loading token app property"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "jenkins_full_name" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/token-app-property
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "jenkins_full_name" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins1/token-app-property
   echo "Loading audience"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins/audience
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "https://$(if [ -z $fqdn_loadbalancer_leader_standby ]; then echo $fqdn_leader; else echo $fqdn_loadbalancer_leader_standby; fi)" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/jenkins1/audience
   echo ""
   echo "----------Instructions----------"
   echo "Please fill in the Jenkins plugin configuration with this information:"
@@ -907,13 +907,13 @@ gitlab_jwt(){
   gitlab_grants__policy_output=$(curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$(cat policy/ci/gitlab/4-gitlab-grants.yml)" https://localhost/policies/$company_name/policy/root)
   echo $gitlab_grants__policy_output
   echo "Loading JWKS value."
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/jwks-uri
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname/-/jwks/" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab1/jwks-uri
   echo "Loading identity path"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/ci/gitlab/projectsr" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/identity-path
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "/ci/gitlab/projectsr" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab1/identity-path
   echo "Loading issuer"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/issuer
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "$gitlab_hostname" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab1/issuer
   echo "Loading token app property"
-  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "project_path" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab/token-app-property
+  curl -k -s --header "Authorization: Token token=\"$auth_token\"" -X POST -d "project_path" https://localhost/secrets/$company_name/variable/conjur/authn-jwt/gitlab1/token-app-property
   echo ""
   echo "----------Instructions----------"
   echo "Please create two groups in Gitlab - Dev-Team-1 and Dev-Team-2"
