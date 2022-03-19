@@ -932,7 +932,7 @@ test1:
     - echo \$TOKEN
     - echo ""
     - echo "Fetching secret"
-    - SECRET=$(curl -k --header "Authorization:Token token=\"$TOKEN\"" -X GET https://$conjur_address/resources/$company_name?kind=variable
+    - SECRET=\$(curl -k --header "Authorization:Token token=\"$TOKEN\"" -X GET https://$conjur_address/resources/$company_name?kind=variable)
     - echo "Here is the list of secrets you can access:"
     - echo $SECRET
 EOF
