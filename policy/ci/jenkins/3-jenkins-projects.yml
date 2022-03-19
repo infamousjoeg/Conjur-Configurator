@@ -56,22 +56,22 @@
     role: !group dev-team-2-folder
     members: *dev_team_2_folder_host
 
-  - !permit
+- !permit
   role: !group /ci/jenkins/dev-team-1/devs
   privileges: [ read, update ]
-  resource: !policy
+  resource: !policy ci/jenkins/projects
 
 - !permit
   role: !group /ci/jenkins/dev-team-2/devs
   privileges: [ read, update ]
-  resource: !policy
+  resource: !policy ci/jenkins/projects
 
 - !permit
   role: !group /ci/jenkins/dev-team-1/managers
   privileges: [ read, update, create ]
-  resource: !policy
+  resource: !policy ci/jenkins/projects
 
 - !permit
   role: !group /ci/jenkins/dev-team-2/managers
   privileges: [ read, update, create ]
-  resource: !policy
+  resource: !policy ci/jenkins/projects
