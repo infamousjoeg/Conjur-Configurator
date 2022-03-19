@@ -13,7 +13,7 @@
 ---
 - !policy
   id: cd/kubernetes/dev-team-3/applications
-  owner: !group managers
+  owner: !group /cd/kubernetes/dev-team-3/managers
   body:
   - &dev_team_3_jwt_apps
     - !host

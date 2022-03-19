@@ -13,7 +13,7 @@
 ---
 - !policy
   id: cd/kubernetes/dev-team-2/applications
-  owner: !group managers
+  owner: !group /cd/kubernetes/dev-team-2/managers
   body:
   - &dev_team_1_api_apps
     - !host
